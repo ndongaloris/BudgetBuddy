@@ -1,0 +1,431 @@
+
+@* Views/Account/Login.cshtml *@
+
+@model Financy.Models.ViewModels.LoginViewModel
+
+@{
+    ViewData["Title"] = "Financy - Login";
+    Layout = null;
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Financy - Login</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        /* Same styles as Register page */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #f8f9fa;
+        }
+        
+        .navbar-brand {
+            font-weight: 600;
+            color: #2c3e50 !important;
+        }
+        
+        .nav-link {
+            color: #6c757d !important;
+            font-weight: 500;
+        }
+        
+        .nav-link.active {
+            color: #007bff !important;
+            border-bottom: 2px solid #007bff;
+        }
+        
+        .left-section {
+            background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%);
+            min-height: calc(100vh - 76px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        
+        .yellow-blob {
+            width: 350px;
+            height: 350px;
+            background: #ffd54f;
+            border-radius: 50% 40% 60% 30%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            font-weight: 600;
+            color: #333;
+            animation: blob 8s infinite;
+        }
+        
+        @@keyframes blob {
+        0%, 100% { border-radius: 50% 40% 60% 30%; }
+        25% { border-radius: 30% 60% 40% 50%; }
+        50% { border-radius: 60% 30% 50% 40%; }
+        75% { border-radius: 40% 50% 30% 60%; }
+    }
+
+        
+        .right-section {
+            background: white;
+            min-height: calc(100vh - 76px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+        }
+        
+        .form-container {
+            width: 100%;
+            max-width: 400px;
+        }
+        
+        .form-title {
+            font-size: 1.75rem;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+        
+        .form-label {
+            font-weight: 500;
+            color: #495057;
+            margin-bottom: 0.5rem;
+        }
+        
+        .form-control {
+            background-color: #e9ecef;
+            border: none;
+            border-radius: 8px;
+            padding: 0.875rem 1rem;
+            font-size: 0.95rem;
+            margin-bottom: 1.25rem;
+        }
+        
+        .form-control:focus {
+            background-color: #e9ecef;
+            border: 2px solid #007bff;
+            box-shadow: none;
+        }
+        
+        .btn-login {
+            background-color: #ffd54f;
+            border: none;
+            border-radius: 8px;
+            padding: 0.875rem 2rem;
+            font-weight: 600;
+            color: #333;
+            width: 100%;
+            margin-bottom: 1.5rem;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-login:hover {
+            background-color: #ffcc02;
+            color: #333;
+            transform: translateY(-1px);
+        }
+        
+        .signup-link {
+            text-align: center;
+            margin-bottom: 1.5rem;
+            color: #6c757d;
+        }
+        
+        .signup-link a {
+            color: #007bff;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        
+        .divider {
+            text-align: center;
+            margin: 1.5rem 0;
+            color: #adb5bd;
+            position: relative;
+        }
+        
+        .divider::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background-color: #dee2e6;
+            z-index: 1;
+        }
+        
+        .divider span {
+            background: white;
+            padding: 0 1rem;
+            position: relative;
+            z-index: 2;
+        }
+        
+        .social-buttons {
+            display: flex;
+            gap: 1rem;
+        }
+        
+        .btn-social {
+            flex: 1;
+            padding: 0.75rem;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            background: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            text-decoration: none;
+            color: #495057;
+            font-weight: 500;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-social:hover {
+            background-color: #f8f9fa;
+            border-color: #adb5bd;
+            color: #495057;
+            text-decoration: none;
+        }
+        
+        .profile-icon {
+            width: 32px;
+            height: 32px;
+            background-color: #6c757d;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 0.875rem;
+        }
+        
+        .validation-summary-errors ul {
+            list-style: none;
+            padding-left: 0;
+            color: #dc3545;
+        }
+        
+        .field-validation-error {
+            color: #dc3545;
+            font-size: 0.875rem;
+        }
+        
+        .remember-me {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1.5rem;
+        }
+        
+        .remember-me input {
+            margin-right: 0.5rem;
+        }
+        
+        .social-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.btn-social {
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    transition: all 0.3s ease;
+    border: 1px solid transparent;
+}
+
+/* Google Button Styles */
+.social-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+.btn-social {
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    text-decoration: none;
+    font-weight: 500;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    transition: all 0.3s ease;
+    border: none;
+}
+
+/* Simple Red Google Button */
+.google-btn {
+    background-color: #DB4437; /* Google red */
+    color: white;
+}
+
+.google-btn:hover {
+    background-color: #C33D2E;
+    color: white;
+    text-decoration: none;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    transform: translateY(-1px);
+}
+
+.google-btn i {
+    color: white;
+}
+
+/* GitHub Button */
+.github-btn {
+    background-color: #24292e;
+    color: white;
+}
+
+.github-btn:hover {
+    background-color: #2c3e50;
+    color: white;
+    text-decoration: none;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    transform: translateY(-1px);
+}
+
+.github-btn i {
+    color: white;
+}
+
+/* GitHub Button Styles */
+.github-btn {
+    background-color: #24292e;
+    color: #ffffff;
+    border: 1px solid #24292e;
+}
+
+.github-btn:hover {
+    background-color: #2c3e50;
+    border-color: #2c3e50;
+    color: #ffffff;
+    text-decoration: none;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+    transform: translateY(-1px);
+}
+
+.github-btn i {
+    color: #ffffff;
+}
+
+    </style>
+</head>
+<body>
+    <!-- Header Navigation -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom">
+        <div class="container-fluid px-4">
+            <a class="navbar-brand d-flex align-items-center" href="#">
+                <i class="fas fa-chart-line text-primary me-2"></i>
+                financy
+            </a>
+            
+            <div class="navbar-nav d-flex flex-row gap-4">
+                <a class="nav-link active" href="#">Overview</a>
+                <a class="nav-link" href="#">Transactions</a>
+                <a class="nav-link" href="#">Accounts</a>
+            </div>
+            
+            <div class="d-flex align-items-center gap-3">
+                <i class="fas fa-cog text-muted"></i>
+                <i class="fas fa-bell text-muted"></i>
+                <div class="profile-icon">
+                    <i class="fas fa-user"></i>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="container-fluid p-0">
+        <div class="row g-0">
+
+
+            <!-- Left Section with Yellow Blob -->
+            <div class="col-lg-6 left-section">
+                <div class="yellow-blob">
+                    <a class="navbar-brand d-flex align-items-center" href="#" style="text-decoration: none; color: inherit;">
+                        <i class="fas fa-chart-line text-primary me-2"></i>
+                        financy
+                    </a>
+                </div>
+            </div>
+
+            
+            <!-- Right Section with Form -->
+            <div class="col-lg-6 right-section">
+                <div class="form-container">
+                    <h2 class="form-title">Login to Your Account</h2>
+                    
+                    <div asp-validation-summary="ModelOnly" class="validation-summary-errors mb-3"></div>
+                    
+                    <form asp-action="Login" method="post">
+                        <div class="mb-3">
+                            <label class="form-label" asp-for="Email">Email</label>
+                            <input type="email" class="form-control" asp-for="Email" placeholder="Enter your Email here">
+                            <span asp-validation-for="Email" class="field-validation-error"></span>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label" asp-for="Password">Password</label>
+                            <input type="password" class="form-control" asp-for="Password" placeholder="Enter your Password here">
+                            <span asp-validation-for="Password" class="field-validation-error"></span>
+                        </div>
+                        
+                        <div class="remember-me">
+                            <input type="checkbox" asp-for="RememberMe" />
+                            <label asp-for="RememberMe">Remember me</label>
+                        </div>
+                        
+                        <button type="submit" class="btn btn-login">Login</button>
+                    </form>
+                    
+                    <div class="signup-link">
+                        Don't have an account? <a asp-action="Register">Sign up</a>
+                    </div>
+                    
+                    <div class="divider">
+                        <span>— OR —</span>
+                    </div>
+                    
+                    <div class="social-buttons">
+                        <!-- Google Button -->
+                        <a asp-controller="Account" asp-action="ExternalLogin" asp-route-provider="Google" class="btn-social google-btn">
+                            <i class="fab fa-google"></i>
+                            @( (ViewContext.RouteData.Values["action"]?.ToString() ?? "") == "Register" 
+                                ? "Sign up with Google" 
+                                : "Login with Google")
+                        </a>
+                        
+                        <!-- GitHub Button -->
+                        <a asp-controller="Account" asp-action="ExternalLogin" asp-route-provider="GitHub" class="btn-social github-btn">
+                            <i class="fab fa-github"></i>
+                            @( (ViewContext.RouteData.Values["action"]?.ToString() ?? "") == "Register" 
+                                ? "Sign up with GitHub" 
+                                : "Login with GitHub")
+                        </a>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <partial name="_ValidationScriptsPartial" />
+</body>
+</html>

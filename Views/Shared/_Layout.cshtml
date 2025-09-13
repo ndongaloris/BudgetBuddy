@@ -1,0 +1,225 @@
+﻿
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Financy</title>
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
+    <link rel="stylesheet" href="~/Financy.styles.css" asp-append-version="true" />
+    <!-- Add Font Awesome for icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+
+    <style>
+        body {
+                padding-top: 70px; /* adjust if navbar height changes */
+            }
+        .navbar-brand {
+            font-weight: 600;
+            color: #2c3e50 !important;
+        }
+
+        .nav-link {
+            color: #6c757d !important;
+            font-weight: 500;
+        }
+
+        .nav-link.active {
+            color: #007bff !important;
+            border-bottom: 2px solid #007bff;
+        }
+
+        .profile-icon, .profile-image {
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            object-fit: cover;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            background-color: #6c757d;
+            font-size: 0.9rem;
+            cursor: pointer;
+        }
+
+        .dropdown-menu {
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            border: none;
+            padding: 0.5rem;
+        }
+
+        .dropdown-item {
+            border-radius: 6px;
+            padding: 0.5rem 1rem;
+        }
+
+        .dropdown-item:hover {
+            background-color: #f8f9fa;
+        }
+
+        /* Center nav links on large, collapse on small */
+        .navbar-nav {
+            margin: 0 auto;
+        }
+
+        /* Fix dropdown alignment on mobile */
+@@media (max-width: 767px) {
+    .dropdown-menu-end {
+        right: auto !important;   /* Remove forced right alignment */
+        left: 50% !important;     /* Center it under the icon */
+        transform: translateX(-50%); /* Proper centering */
+        min-width: 180px;         /* Prevent too narrow tray */
+    }
+}
+
+/* Footer responsiveness & alignment */
+footer .row {
+    text-align: left;
+}
+
+@@media (min-width: 768px) {
+    footer .row {
+        text-align: left;
+    }
+    footer .d-flex.justify-content-md-end {
+        justify-content: flex-end !important;
+    }
+}
+
+@@media (max-width: 767px) {
+    footer .d-flex {
+        flex-direction: column;
+        align-items: left;
+        gap: 0.5rem;
+    }
+    footer .d-flex a {
+        display: block;
+    }
+}
+
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <!-- Updated Header Navigation -->
+        <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom fixed-top">
+            
+            <div class="container-fluid px-4">
+                <!-- Logo -->
+                <a class="navbar-brand d-flex align-items-center" asp-area="" asp-controller="Home" asp-action="Index">
+                    <i class="fas fa-chart-line text-primary me-2"></i>
+                    Financy
+                </a>
+
+                <!-- Hamburger toggler (only shows on small screens) -->
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar"
+                        aria-controls="mainNavbar" aria-expanded="false" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <!-- Navigation Links -->
+                <div class="collapse navbar-collapse" id="mainNavbar">
+                    <ul class="navbar-nav mx-auto">
+                        <li class="nav-item">
+                            <a class="nav-link active" asp-area="" asp-controller="Home" asp-action="Index">Overview</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#">Transactions</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link" href="#">Accounts</a>
+                        </li>
+                    </ul>
+
+                    <!-- User Navigation Section -->
+                    @using Microsoft.AspNetCore.Identity
+                    @inject SignInManager<User> SignInManager
+                    @inject UserManager<User> UserManager
+
+                    <div class="d-flex align-items-center gap-3">
+                        @if (SignInManager.IsSignedIn(User))
+                        {
+                            var user = await UserManager.GetUserAsync(User);
+
+                            <i class="fas fa-cog text-muted"></i>
+                            <i class="fas fa-bell text-muted"></i>
+
+                            <!-- Profile dropdown only -->
+                            <div class="dropdown">
+                                <button class="btn p-0 border-0" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                    @if (!string.IsNullOrEmpty(user?.ProfileImageUrl))
+                                    {
+                                        <img src="@user.ProfileImageUrl" class="profile-image" alt="Profile">
+                                    }
+                                    else
+                                    {
+                                        <div class="profile-icon">
+                                            @user?.ProfileInitials
+                                        </div>
+                                    }
+                                </button>
+                                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+                                    <li><a class="dropdown-item" href="#"><i class="fas fa-user me-2"></i>Profile</a></li>
+                                    <li><a class="dropdown-item" href="#"><i class="fas fa-cog me-2"></i>Settings</a></li>
+                                    <li><hr class="dropdown-divider"></li>
+                                    <li>
+                                        <form asp-controller="Account" asp-action="Logout" method="post">
+                                            <button type="submit" class="dropdown-item">
+                                                <i class="fas fa-sign-out-alt me-2"></i>Logout
+                                            </button>
+                                        </form>
+                                    </li>
+                                </ul>
+                            </div>
+                        }
+                        else
+                        {
+                            <a asp-controller="Account" asp-action="Login" class="btn btn-outline-primary">Login</a>
+                            <a asp-controller="Account" asp-action="Register" class="btn btn-primary">Sign Up</a>
+                        }
+                    </div>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <div class="container">
+        <main role="main" class="pb-3">
+            @RenderBody()
+        </main>
+    </div>
+
+    <!-- Footer Section -->
+    <footer class="bg-white border-top mt-5">
+        <div class="container-fluid px-4 py-4">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <div class="d-flex align-items-center">
+                        <i class="fas fa-chart-line text-primary me-2"></i>
+                        <span class="fw-semibold text-muted">financy</span>
+                        <span class="text-muted ms-2">© 2025 All rights reserved</span>
+                    </div>
+                </div>
+                <div class="col-md-6">
+                    <div class="d-flex justify-content-md-end gap-4">
+                        <a href="#" class="text-muted text-decoration-none small">Privacy Policy</a>
+                        <a href="#" class="text-muted text-decoration-none small">Terms of Service</a>
+                        <a href="#" class="text-muted text-decoration-none small">Support</a>
+                        <a href="#" class="text-muted text-decoration-none small">Contact</a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="~/lib/jquery/dist/jquery.min.js"></script>
+    @* <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script> *@
+    <script src="~/js/site.js" asp-append-version="true"></script> 
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>
+

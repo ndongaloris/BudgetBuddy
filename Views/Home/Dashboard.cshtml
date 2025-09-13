@@ -1,0 +1,473 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Financy - Dashboard</title>
+
+    <!-- CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet" />
+
+    <!-- Chart.js (kept in head; OK because we initialize after DOMContentLoaded) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            @* background-color: rgba(181, 203, 222, 0.5); *@
+            background-color: #F5F5F7
+            @* background-color: #e3f2fd; *@
+        }
+
+        .navbar-brand { font-weight: 600; color: #2c3e50 !important; }
+
+        .nav-link { color: #6c757d !important; font-weight: 500; }
+        .nav-link.active { color: #007bff !important; border-bottom: 2px solid #007bff; }
+
+        .profile-icon {
+            width: 32px; height: 32px; background-color: #6c757d; border-radius: 50%;
+            display: flex; align-items: center; justify-content: center; color: white;
+            font-size: 0.875rem; cursor: pointer;
+        }
+
+        .profile-image {
+            width: 32px; height: 32px; border-radius: 50%; object-fit: cover; cursor: pointer;
+        }
+
+        .greeting-section {
+            background: white; border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .time-filters { display: flex; gap: 1rem; }
+
+        .time-filter {
+            padding: 0.5rem 1rem; border: none; background: transparent; color: #6c757d;
+            border-radius: 6px; font-weight: 500; cursor: pointer; transition: all 0.3s ease;
+        }
+        .time-filter.active { background-color: #F5F5F7; color: #1976d2; }
+
+        .metric-card {
+            background: white; border-radius: 12px; padding: 1.5rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            height: 100%;
+        }
+        .metric-title { font-size: 0.875rem; color: #6c757d; margin-bottom: 0.5rem; font-weight: 500; }
+        .metric-value { font-size: 1.75rem; font-weight: 700; margin-bottom: 0.5rem; }
+        .metric-change { font-size: 0.875rem; font-weight: 500; }
+        .metric-change.positive { color: #28a745; }
+        .metric-change.negative { color: #dc3545; }
+
+        .action-button {
+            background: white; border-radius: 12px; padding: 1.25rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            border: none; width: 100%; text-align: left; display: flex; align-items: center; gap: 1rem;
+            margin-bottom: 1rem; transition: all 0.3s ease; text-decoration: none; color: inherit;
+        }
+        .action-button:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.15); }
+
+        .action-icon { width: 40px; height: 40px; border-radius: 50%; display:flex; align-items:center; justify-content:center; margin-right:1rem; font-size:1.25rem; }
+        .action-icon.income { background-color:#e8f5e8; color:#28a745; }
+        .action-icon.expense { background-color:#fdeaea; color:#dc3545; }
+
+        .chart-container {
+            background: white; border-radius: 12px; padding: 1.5rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            height: auto; min-height: 500px;
+        }
+
+        .transactions-container {
+            background: white; border-radius: 12px; padding: 1.5rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .section-title { font-size: 1.125rem; font-weight: 600; color: #2c3e50; margin-bottom: 0.5rem; }
+        .section-subtitle { font-size: 0.875rem; color: #6c757d; margin-bottom: 1.5rem; }
+
+        .transaction-item { display: flex; align-items:center; padding:0.75rem 0; border-bottom:1px solid #f1f3f4; }
+        .transaction-item:last-child { border-bottom:none; }
+
+        .transaction-icon { width:32px; height:32px; border-radius:50%; display:flex; align-items:center; justify-content:center; margin-right:1rem; font-size:0.875rem; }
+
+        .category-item { display:flex; align-items:center; justify-content:space-between; padding:0.75rem 0; border-bottom:1px solid #f1f3f4; }
+        .category-item:last-child { border-bottom:none; }
+
+        .greeting-section {
+            background: white;
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+
+            position: sticky;    /* 👈 makes it stick */
+            top: 30px;           /* 👈 offset for navbar height */
+            z-index: 1020;       /* 👈 ensure it stays above content */
+        }
+
+        /* Greeting section layout fix for small screens */
+        @@media (max-width: 767px) {
+            .greeting-section .d-flex {
+                flex-direction: column;       /* stack vertically */
+                align-items: center;          /* center greeting text */
+                text-align: center;
+                gap: 1rem;
+            }
+
+            .greeting-section h1 {
+                font-size: 1.25rem;           /* slightly smaller for mobile */
+                margin-bottom: 0.5rem;
+            }
+
+            .time-filters {
+                flex-direction: column;       /* stack buttons */
+                width: 100%;
+                gap: 0.5rem;
+            }
+
+            .time-filter {
+                width: 100%;                  /* make buttons full width */
+                text-align: center;
+            }
+
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+                background-color: rgba(181, 203, 222, 0.5);
+           
+            }
+        }
+
+
+    </style>
+</head>
+<body>
+
+    <!-- NAV has been removed intentionally (coming from Layout/_Layout.cshtml). -->
+    <!-- Main Content -->
+    <div class="container-fluid px-4 py-3">
+        <!-- Greeting Section -->
+        <div class="greeting-section">
+            <div class="d-flex justify-content-between align-items-center">
+                <h1 class="h3 mb-0 fw-bold" id="userGreeting">Hello, User!</h1>
+                <div class="time-filters">
+                    <button class="time-filter active">This month</button>
+                    <button class="time-filter">Last month</button>
+                    <button class="time-filter">This year</button>
+                    <button class="time-filter">Last 12 months</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- New layout: Pie chart on left, everything else on right -->
+        <div class="row g-4">
+            <!-- Left Column: Pie Chart -->
+            <div class="col-lg-4">
+                <div class="chart-container">
+                    <div class="section-title">Expenses by category</div>
+                    <div class="section-subtitle">Check your expenses by category</div>
+
+                    <div style="position: relative; height: 280px; margin-bottom: 1.5rem;">
+                        <canvas id="expensesChart"></canvas>
+                    </div>
+
+                    <!-- Category breakdown list within the same card -->
+                    <div class="category-item">
+                        <div class="d-flex align-items-center category-info">
+                            <div class="category-color" style="background-color: #6366f1;"></div>
+                            <span class="category-name ms-2">House</span>
+                        </div>
+                        <span class="category-percentage">41.35%</span>
+                    </div>
+
+                    <div class="category-item">
+                        <div class="d-flex align-items-center category-info">
+                            <div class="category-color" style="background-color: #ef4444;"></div>
+                            <span class="category-name ms-2">Savings</span>
+                        </div>
+                        <span class="category-percentage">21.51%</span>
+                    </div>
+
+                    <div class="category-item">
+                        <div class="d-flex align-items-center category-info">
+                            <div class="category-color" style="background-color: #06b6d4;"></div>
+                            <span class="category-name ms-2">Transportation</span>
+                        </div>
+                        <span class="category-percentage">15.47%</span>
+                    </div>
+
+                    <div class="category-item">
+                        <div class="d-flex align-items-center category-info">
+                            <div class="category-color" style="background-color: #10b981;"></div>
+                            <span class="category-name ms-2">Groceries</span>
+                        </div>
+                        <span class="category-percentage">9.27%</span>
+                    </div>
+
+                    <div class="category-item">
+                        <div class="d-flex align-items-center category-info">
+                            <div class="category-color" style="background-color: #8b5cf6;"></div>
+                            <span class="category-name ms-2">Shopping</span>
+                        </div>
+                        <span class="category-percentage">7.35%</span>
+                    </div>
+
+                    <div class="category-item">
+                        <div class="d-flex align-items-center category-info">
+                            <div class="category-color" style="background-color: #f59e0b;"></div>
+                            <span class="category-name ms-2">Entertainment</span>
+                        </div>
+                        <span class="category-percentage">5.05%</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: Metrics, Actions, and Transactions -->
+            <div class="col-lg-8">
+                <!-- Metrics Row -->
+                <div class="row g-3 mb-4">
+                    <div class="col-md-4">
+                        <div class="metric-card">
+                            <div class="metric-title">Balance</div>
+                            <div class="metric-value text-success">$5,502.45</div>
+                            <div class="metric-change positive">+ 12.5%</div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="metric-card">
+                            <div class="metric-title">Incomes</div>
+                            <div class="metric-value">$9,450.00</div>
+                            <div class="metric-change positive">+ 27%</div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="metric-card">
+                            <div class="metric-title">Expenses</div>
+                            <div class="metric-value">$3,945.55</div>
+                            <div class="metric-change negative">- 15%</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Action Buttons Row -->
+                <div class="row g-3 mb-4">
+                    <div class="col-md-6">
+                        <a href="add-income.html" class="action-button">
+                            <div class="action-icon income">
+                                <i class="fas fa-plus"></i>
+                            </div>
+                            <div>
+                                <div class="fw-semibold">Add Income</div>
+                                <div class="text-muted small">Create an income manually</div>
+                            </div>
+                        </a>
+                    </div>
+                    <div class="col-md-6">
+                        <a href="add-expense.html" class="action-button">
+                            <div class="action-icon expense">
+                                <i class="fas fa-plus"></i>
+                            </div>
+                            <div>
+                                <div class="fw-semibold">Add expense</div>
+                                <div class="text-muted small">Create an expense manually</div>
+                            </div>
+                        </a>
+                    </div>
+                </div>
+
+                <!-- Transactions List -->
+                <div class="transactions-container">
+                    <div class="section-title">Last transactions</div>
+                    <div class="section-subtitle">Check your last transactions</div>
+
+                    <div class="table-responsive">
+                        <table class="table table-borderless">
+                            <thead>
+                                <tr class="text-muted small">
+                                    <th>Description</th>
+                                    <th>Category</th>
+                                    <th>Date</th>
+                                    <th class="text-end">Amount</th>
+                                    <th></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="transaction-icon" style="background-color: #fff3cd; color: #856404;">OR</div>
+                                            <span class="fw-medium">Orlando Rodriguez</span>
+                                        </div>
+                                    </td>
+                                    <td><span class="text-muted">Bank account</span></td>
+                                    <td><span class="text-muted">2024/04/01</span></td>
+                                    <td class="text-end"><span class="text-success fw-semibold">+$750.00</span></td>
+                                    <td><i class="fas fa-ellipsis-v text-muted"></i></td>
+                                </tr>
+
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <div class="transaction-icon" style="background-color: #d1ecf1; color:#0c5460;">N</div>
+                                            <span class="fw-medium">Netflix</span>
+                                        </div>
+                                    </td>
+                                    <td><span class="text-muted">Credit card</span></td>
+                                    <td><span class="text-muted">2024/03/29</span></td>
+                                    <td class="text-end"><span class="fw-semibold">$9.90</span></td>
+                                    <td><i class="fas fa-ellipsis-v text-muted"></i></td>
+                                </tr>
+
+                                <!-- other rows... -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+
+    <!-- scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        // Wrap everything in DOMContentLoaded so missing elements won't break initialization
+        document.addEventListener('DOMContentLoaded', function () {
+            // User authentication simulation (you can replace with real data)
+            const users = [
+                { id: 1, name: "Mark Johnson", email: "mark@example.com", profileImage: "https://randomuser.me/api/portraits/men/32.jpg", hasImage: true },
+                { id: 2, name: "Sarah Wilson", email: "sarah@example.com", profileImage: null, hasImage: false },
+                { id: 3, name: "Alex Chen", email: "alex@example.com", profileImage: "https://randomuser.me/api/portraits/men/67.jpg", hasImage: true }
+            ];
+
+            function getUserInitials(name) {
+                if (!name) return '';
+                return name.split(' ').map(word => word[0]).join('').toUpperCase();
+            }
+
+            // Only update profile display if the element exists (nav might be in layout)
+            function displayUserProfile(user) {
+                const userGreeting = document.getElementById('userGreeting');
+                if (userGreeting) {
+                    userGreeting.textContent = `Hello, ${user.name.split(' ')[0]}!`;
+                }
+
+                const userProfileDisplay = document.getElementById('userProfileDisplay');
+                if (!userProfileDisplay) return; // nav/profile area likely lives in layout now
+
+                if (user.hasImage && user.profileImage) {
+                    userProfileDisplay.innerHTML = `<img src="${user.profileImage}" class="profile-image" alt="${user.name}">`;
+                } else {
+                    const initials = getUserInitials(user.name);
+                    userProfileDisplay.innerHTML = `<div class="profile-icon">${initials}</div>`;
+                }
+            }
+
+            // Pick the current user for demo
+            const currentUser = users[0];
+            displayUserProfile(currentUser);
+
+            // Initialize the donut chart safely
+            const canvas = document.getElementById('expensesChart');
+            if (!canvas) {
+                console.error('expensesChart canvas not found.');
+                return;
+            }
+
+            const ctx = canvas.getContext('2d');
+
+            // Build the Chart instance
+            const expensesChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['House', 'Savings', 'Transportation', 'Groceries', 'Shopping', 'Entertainment'],
+                    datasets: [{
+                        data: [41.35, 21.51, 15.47, 9.27, 7.35, 5.05],
+                        backgroundColor: ['#6366f1', '#ef4444', '#06b6d4', '#10b981', '#8b5cf6', '#f59e0b'],
+                        borderWidth: 0,
+                        cutout: '60%'
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } }
+                }
+            });
+
+            // Data sets for different time periods
+            const timePeriodsData = {
+                'This month': {
+                    balance: { value: '$5,502.45', change: '+ 12.5%', positive: true },
+                    incomes: { value: '$9,450.00', change: '+ 27%', positive: true },
+                    expenses: { value: '$3,945.55', change: '- 15%', positive: false },
+                    chartData: [41.35, 21.51, 15.47, 9.27, 7.35, 5.05],
+                    categories: [
+                        { name: 'House', percentage: '41.35%', color: '#6366f1' },
+                        { name: 'Savings', percentage: '21.51%', color: '#ef4444' },
+                        { name: 'Transportation', percentage: '15.47%', color: '#06b6d4' },
+                        { name: 'Groceries', percentage: '9.27%', color: '#10b981' },
+                        { name: 'Shopping', percentage: '7.35%', color: '#8b5cf6' },
+                        { name: 'Entertainment', percentage: '5.05%', color: '#f59e0b' }
+                    ]
+                },
+                'Last month': { /* ... */ chartData: [38.20, 24.15, 18.30, 11.45, 5.20, 2.70], balance: { value: '$4,892.30', change: '+ 8.2%', positive: true }, incomes: { value: '$8,750.00', change: '+ 15%', positive: true }, expenses: { value: '$4,257.70', change: '+ 5%', positive: false }, categories: [ { name: 'House', percentage: '38.20%', color: '#6366f1' }, { name: 'Savings', percentage: '24.15%', color: '#ef4444' }, { name: 'Transportation', percentage: '18.30%', color: '#06b6d4' }, { name: 'Groceries', percentage: '11.45%', color: '#10b981' }, { name: 'Shopping', percentage: '5.20%', color: '#8b5cf6' }, { name: 'Entertainment', percentage: '2.70%', color: '#f59e0b' } ] },
+                'This year': { /* ... */ chartData: [42.80, 19.60, 16.20, 8.90, 8.50, 4.00], balance: { value: '$48,250.80', change: '+ 35.7%', positive: true }, incomes: { value: '$95,400.00', change: '+ 42%', positive: true }, expenses: { value: '$47,149.20', change: '+ 18%', positive: false }, categories: [ { name: 'House', percentage: '42.80%', color: '#6366f1' }, { name: 'Savings', percentage: '19.60%', color: '#ef4444' }, { name: 'Transportation', percentage: '16.20%', color: '#06b6d4' }, { name: 'Groceries', percentage: '8.90%', color: '#10b981' }, { name: 'Shopping', percentage: '8.50%', color: '#8b5cf6' }, { name: 'Entertainment', percentage: '4.00%', color: '#f59e0b' } ] },
+                'Last 12 months': { /* ... */ chartData: [40.50, 22.30, 14.80, 10.20, 7.40, 4.80], balance: { value: '$52,180.95', change: '+ 28.4%', positive: true }, incomes: { value: '$118,500.00', change: '+ 38%', positive: true }, expenses: { value: '$66,319.05', change: '+ 22%', positive: false }, categories: [ { name: 'House', percentage: '40.50%', color: '#6366f1' }, { name: 'Savings', percentage: '22.30%', color: '#ef4444' }, { name: 'Transportation', percentage: '14.80%', color: '#06b6d4' }, { name: 'Groceries', percentage: '10.20%', color: '#10b981' }, { name: 'Shopping', percentage: '7.40%', color: '#8b5cf6' }, { name: 'Entertainment', percentage: '4.80%', color: '#f59e0b' } ] }
+            };
+
+            // More robust selector for metric cards (works even if layout nesting changes)
+            function updateDashboard(period) {
+                const data = timePeriodsData[period];
+                if (!data) return;
+
+                const metricCards = document.querySelectorAll('.metric-card');
+                if (metricCards.length >= 3) {
+                    const balanceValue = metricCards[0].querySelector('.metric-value');
+                    const balanceChange = metricCards[0].querySelector('.metric-change');
+                    const incomesValue = metricCards[1].querySelector('.metric-value');
+                    const incomesChange = metricCards[1].querySelector('.metric-change');
+                    const expensesValue = metricCards[2].querySelector('.metric-value');
+                    const expensesChange = metricCards[2].querySelector('.metric-change');
+
+                    if (balanceValue) balanceValue.textContent = data.balance.value;
+                    if (balanceChange) { balanceChange.textContent = data.balance.change; balanceChange.className = 'metric-change ' + (data.balance.positive ? 'positive' : 'negative'); }
+
+                    if (incomesValue) incomesValue.textContent = data.incomes.value;
+                    if (incomesChange) { incomesChange.textContent = data.incomes.change; incomesChange.className = 'metric-change ' + (data.incomes.positive ? 'positive' : 'negative'); }
+
+                    if (expensesValue) expensesValue.textContent = data.expenses.value;
+                    if (expensesChange) { expensesChange.textContent = data.expenses.change; expensesChange.className = 'metric-change ' + (data.expenses.positive ? 'positive' : 'negative'); }
+                }
+
+                // Update chart
+                if (expensesChart && data.chartData) {
+                    expensesChart.data.datasets[0].data = data.chartData;
+                    expensesChart.update('active');
+                }
+
+                // Update categories list
+                const categoryItems = document.querySelectorAll('.category-item');
+                data.categories && data.categories.forEach((category, index) => {
+                    const item = categoryItems[index];
+                    if (!item) return;
+                    const nameEl = item.querySelector('.category-name');
+                    const percEl = item.querySelector('.category-percentage');
+                    const colorEl = item.querySelector('.category-color');
+                    if (nameEl) nameEl.textContent = category.name;
+                    if (percEl) percEl.textContent = category.percentage;
+                    if (colorEl) colorEl.style.backgroundColor = category.color;
+                });
+            }
+
+            // Wire up time filters
+            document.querySelectorAll('.time-filter').forEach(filter => {
+                filter.addEventListener('click', function () {
+                    document.querySelectorAll('.time-filter').forEach(f => f.classList.remove('active'));
+                    this.classList.add('active');
+                    updateDashboard(this.textContent);
+                });
+            });
+
+            // initialize with default period
+            updateDashboard('This month');
+        });
+    </script>
+</body>
+</html>

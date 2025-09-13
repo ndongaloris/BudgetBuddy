@@ -1,0 +1,114 @@
+# Build results
+bin
+obj
+bin/
+obj/
+Debug/
+Release/
+[Bb]uild/
+[Bb]uild[Ll]og.*
+
+# Rider / VSCode / Visual Studio
+.vscode/
+.idea/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# ASP.NET / EF Core artifacts
+*.dbmdl
+*.bak
+*.ldf
+*.mdf
+*.ndf
+
+# Logs
+*.log
+logs/
+*.tlog
+
+# Publish output
+out/
+publish/
+*.publishsettings
+
+# Temporary files
+*.tmp
+*.temp
+*.swp
+*~
+*.cache
+*.bak
+
+# Generated files
+Generated\ Files/
+project.lock.json
+project.fragment.lock.json
+
+# Resharper
+_ReSharper*/
+*.[Rr]e[Ss]harper
+*.DotSettings.user
+
+# Test results
+TestResult*/
+[Test]Result.xml
+*.coverage
+*.coveragexml
+
+# User-specific files
+*.userprefs
+*.db
+*.sqlite
+*.sqlite3
+
+# OS / System files
+.DS_Store
+Thumbs.db
+ehthumbs.db
+desktop.ini
+$RECYCLE.BIN/
+
+# IIS / Server
+IISExpress/
+.vs/
+*.vspscc
+*.vssscc
+*.pidb
+*.svclog
+*.scc
+
+# NuGet
+*.nupkg
+*.nuget.props
+*.nuget.targets
+packages/
+.nuget/
+# Keep project.json to allow restoring
+!project.json
+
+# Env / Secrets
+.env
+.env.* 
+secrets.json
+secrets/
+
+# App settings (exclude environment-specific, keep base appsettings.json)
+appsettings.Development.json
+appsettings.Production.json
+appsettings.Staging.json
+
+# Node / Libman (if used for frontend assets)
+node_modules/
+libman.json
+
+# wwwroot static libraries (optional: ignore if using LibMan/NPM restore)
+wwwroot/lib/
+
+# JetBrains Rider cache
+.idea/
+*.iml
+
+# Local tools
+tools/
