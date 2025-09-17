@@ -25,6 +25,14 @@ namespace Financy.Controllers
             _signInManager = signInManager;
             _logger = logger;
         }
+        [Authorize]
+        [HttpGet]
+        public IActionResult Index()
+        {
+            return View();
+        }
+
+
 
         // GET: /Account/Register
         [HttpGet]
@@ -65,7 +73,6 @@ namespace Financy.Controllers
             return View(model);
         }
 
-        // GET: /Account/Login
         // GET: /Account/Login
         [HttpGet]
         public IActionResult Login(string? returnUrl = null)

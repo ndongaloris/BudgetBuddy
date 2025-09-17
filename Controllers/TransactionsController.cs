@@ -7,6 +7,8 @@ using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using Financy.Data;
 using Financy.Models;
+using Microsoft.AspNetCore.Authorization;
+
 
 namespace Financy.Controllers
 {
@@ -20,6 +22,8 @@ namespace Financy.Controllers
         }
 
         // GET: Transactions
+        [Authorize]
+        [HttpGet]
         public async Task<IActionResult> Index()
         {
             var financyContext = _context.Transactions.Include(t => t.Account).Include(t => t.Category).Include(t => t.User);
