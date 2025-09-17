@@ -12,7 +12,7 @@ using AspNet.Security.OAuth.GitHub; // ✅ Needed for GitHub auth
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-builder.Services.AddControllersWithViews();
+builder.Services.AddControllersWithViews().AddRazorRuntimeCompilation();
 
 // Add DbContext with PostgreSQL
 builder.Services.AddDbContext<FinancyContext>(options =>
