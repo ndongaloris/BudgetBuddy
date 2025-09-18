@@ -29,7 +29,16 @@ namespace Financy.Controllers
             var financyContext = _context.Transactions.Include(t => t.Account).Include(t => t.Category).Include(t => t.User);
             return View(await financyContext.ToListAsync());
         }
-
+        [HttpGet]
+        public IActionResult addExpense()
+        {
+            return View();
+        }
+        [HttpGet]
+        public IActionResult addIncome()
+        {
+            return View();
+        }
         // GET: Transactions/Details/5
         public async Task<IActionResult> Details(int? id)
         {
