@@ -49,8 +49,6 @@ Financy/ ├── Controllers/ │ └── AccountController.cs ├── Mod
 4. **Access locally**
    ```bash
     http://localhost:5291
-    
-
 
 ## 👥 Team Members
 
