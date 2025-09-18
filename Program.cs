@@ -1,6 +1,3 @@
-
-// program.cs
-
 using Microsoft.EntityFrameworkCore;
 using Financy.Data;
 using Microsoft.AspNetCore.Identity;

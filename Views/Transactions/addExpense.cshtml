@@ -1,0 +1,163 @@
+@{
+    ViewData["Title"] = "BudgetBuddy - Add New Expense";
+    Layout = "_Layout";
+}
+
+<!-- Main Content -->
+    <div class="container-fluid px-4 py-4">
+        <!-- Page Header -->
+        <div class="page-header">
+            <a href="dashboard.html" class="back-link">
+                <i class="fas fa-arrow-left"></i>
+                Back to Dashboard
+            </a>
+            <h1 class="h3 mb-0 fw-bold">Add New Expense</h1>
+            <p class="text-muted mb-0">Create a new expense entry to track your spending</p>
+        </div>
+
+        <!-- Form Container -->
+        <div class="form-container">
+            <div class="form-title">Expense Details</div>
+            <div class="form-subtitle">Fill in the information below to add a new expense entry</div>
+            
+            <form id="expenseForm">
+                <div class="mb-4">
+                    <label class="form-label">Category <span class="required">*</span></label>
+                    <div class="category-grid">
+                        <div class="category-option" data-category="house">
+                            <div class="category-icon"><i class="fas fa-home"></i></div>
+                            <div class="category-name">House</div>
+                        </div>
+                        <div class="category-option" data-category="transportation">
+                            <div class="category-icon"><i class="fas fa-car"></i></div>
+                            <div class="category-name">Transportation</div>
+                        </div>
+                        <div class="category-option" data-category="groceries">
+                            <div class="category-icon"><i class="fas fa-shopping-cart"></i></div>
+                            <div class="category-name">Groceries</div>
+                        </div>
+                        <div class="category-option" data-category="shopping">
+                            <div class="category-icon"><i class="fas fa-shopping-bag"></i></div>
+                            <div class="category-name">Shopping</div>
+                        </div>
+                        <div class="category-option" data-category="entertainment">
+                            <div class="category-icon"><i class="fas fa-film"></i></div>
+                            <div class="category-name">Entertainment</div>
+                        </div>
+                        <div class="category-option" data-category="healthcare">
+                            <div class="category-icon"><i class="fas fa-heartbeat"></i></div>
+                            <div class="category-name">Healthcare</div>
+                        </div>
+                        <div class="category-option" data-category="education">
+                            <div class="category-icon"><i class="fas fa-graduation-cap"></i></div>
+                            <div class="category-name">Education</div>
+                        </div>
+                        <div class="category-option" data-category="utilities">
+                            <div class="category-icon"><i class="fas fa-bolt"></i></div>
+                            <div class="category-name">Utilities</div>
+                        </div>
+                    </div>
+                    <input type="hidden" id="selectedCategory" required>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <label class="form-label">Description <span class="required">*</span></label>
+                        <input type="text" class="form-control" id="description" placeholder="e.g., Grocery shopping, Gas bill, Netflix subscription" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Amount <span class="required">*</span></label>
+                        <div class="input-group">
+                            <span class="input-group-text">$</span>
+                            <input type="number" class="form-control" id="amount" placeholder="0.00" step="0.01" min="0" required>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <label class="form-label">Date <span class="required">*</span></label>
+                        <input type="date" class="form-control" id="date" required>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Account</label>
+                        <select class="form-select" id="account">
+                            <option value="">Select account</option>
+                            <option value="checking">Checking Account</option>
+                            <option value="savings">Savings Account</option>
+                            <option value="credit">Credit Card</option>
+                            <option value="cash">Cash</option>
+                            <option value="paypal">PayPal</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="row">
+                    <div class="col-md-6">
+                        <label class="form-label">Payment Method</label>
+                        <select class="form-select" id="paymentMethod">
+                            <option value="">Select payment method</option>
+                            <option value="credit-card">Credit Card</option>
+                            <option value="debit-card">Debit Card</option>
+                            <option value="cash">Cash</option>
+                            <option value="bank-transfer">Bank Transfer</option>
+                            <option value="paypal">PayPal</option>
+                            <option value="check">Check</option>
+                            <option value="other">Other</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">Vendor/Store</label>
+                        <input type="text" class="form-control" id="vendor" placeholder="e.g., Amazon, Walmart, Netflix">
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Notes</label>
+                    <textarea class="form-control" id="notes" rows="3" placeholder="Add any additional notes or details about this expense..."></textarea>
+                </div>
+
+                <div class="form-check mb-4">
+                    <input class="form-check-input" type="checkbox" id="recurring">
+                    <label class="form-check-label" for="recurring">
+                        This is a recurring expense
+                    </label>
+                </div>
+
+                <div id="recurringOptions" class="row mb-4" style="display: none;">
+                    <div class="col-md-6">
+                        <label class="form-label">Frequency</label>
+                        <select class="form-select" id="frequency">
+                            <option value="weekly">Weekly</option>
+                            <option value="biweekly">Bi-weekly</option>
+                            <option value="monthly" selected>Monthly</option>
+                            <option value="quarterly">Quarterly</option>
+                            <option value="yearly">Yearly</option>
+                        </select>
+                    </div>
+                    <div class="col-md-6">
+                        <label class="form-label">End Date (Optional)</label>
+                        <input type="date" class="form-control" id="endDate">
+                    </div>
+                </div>
+
+                <div class="form-check mb-4">
+                    <input class="form-check-input" type="checkbox" id="businessExpense">
+                    <label class="form-check-label" for="businessExpense">
+                        This is a business expense (tax deductible)
+                    </label>
+                </div>
+
+                <div class="d-flex gap-3 justify-content-end">
+                    <button type="button" class="btn btn-secondary" onclick="window.location.href='dashboard.html'">
+                        Cancel
+                    </button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="fas fa-plus me-2"></i>
+                        Add Expense
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
