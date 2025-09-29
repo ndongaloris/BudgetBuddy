@@ -1,310 +1,829 @@
+@* File: Views/Transactions/Index.cshtml *@
 @model IEnumerable<Financy.Models.Transaction>
 
 @{
     ViewData["Title"] = "BudgetBuddy - Personal Finance Management";
     Layout = "_Layout";
+
+    // Totals and state come from ViewBag (set by controller)
+    decimal totalIncome = ViewBag.TotalIncome ?? 0M;
+    decimal totalExpenses = ViewBag.TotalExpenses ?? 0M;
+    decimal netBalance = ViewBag.NetBalance ?? (totalIncome - totalExpenses);
+    int transactionsCount = ViewBag.TransactionsCount ?? Model.Count();
+
+    string dateRange = (ViewBag.DateRange ?? "month").ToString();
+    string typeFilter = (ViewBag.Type ?? "all").ToString();
+    int categoryId = (int?)(ViewBag.CategoryId ?? 0) ?? 0;
+    string searchTerm = (ViewBag.Search ?? string.Empty).ToString();
+    string sort = (ViewBag.Sort ?? "date_desc").ToString();
+
+    // ✅ FIX: renamed `page` → `currentPage`
+    int currentPage = (int?)(ViewBag.Page ?? 1) ?? 1;
+    int pageSize = (int?)(ViewBag.PageSize ?? 10) ?? 10;
+    int totalPages = (int?)(ViewBag.TotalPages ?? 1) ?? 1;
+
+    var categories = (ViewBag.Categories as List<Financy.Models.Category>) ?? new List<Financy.Models.Category>();
+
+    string balanceClass = netBalance < 0 ? "text-balance-negative" : "text-balance-positive";
 }
 
 
-<!-- Main Content -->
-    <div class="container-fluid px-4 py-4">
-        <!-- Page Header -->
-        <div class="page-header">
-            <div class="d-flex justify-content-between align-items-center">
-                <div>
-                    <h1 class="h3 mb-0 fw-bold">All Transactions</h1>
-                    <p class="text-muted mb-0">View and manage all your financial transactions</p>
-                </div>
-                <div class="d-flex gap-2">
-                    <a href="../Transactions/addIncome" class="btn btn-success">
-                        <i class="fas fa-plus me-2"></i>Add Income
-                    </a>
-                    <a href="../Transactions/addExpense" class="btn btn-danger">
-                        <i class="fas fa-plus me-2"></i>Add Expense
-                    </a>
-                </div>
-            </div>
-        </div>
+<style>
+    body {
+        background-color: #f8f9fa !important;
+    }
 
-        <!-- Summary Cards -->
-        <div class="summary-cards">
-            <div class="summary-card">
-                <div class="summary-title">Total Income</div>
-                <div class="summary-value income">$9,450.00</div>
-            </div>
-            <div class="summary-card">
-                <div class="summary-title">Total Expenses</div>
-                <div class="summary-value expense">$3,945.55</div>
-            </div>
-            <div class="summary-card">
-                <div class="summary-title">Net Balance</div>
-                <div class="summary-value income">$5,504.45</div>
-            </div>
-            <div class="summary-card">
-                <div class="summary-title">Transactions</div>
-                <div class="summary-value">47</div>
-            </div>
-        </div>
+    .container-fluid {
+        background-color: transparent !important;
+    }
 
-        <!-- Filters -->
-        <div class="filters-container">
-            <h5 class="mb-3">Filter Transactions</h5>
-            <div class="row g-3">
-                <div class="col-md-3">
-                    <div class="filter-group">
-                        <label class="filter-label">Date Range</label>
-                        <select class="form-select" id="dateRange">
-                            <option value="all">All Time</option>
-                            <option value="today">Today</option>
-                            <option value="week">This Week</option>
-                            <option value="month" selected>This Month</option>
-                            <option value="quarter">This Quarter</option>
-                            <option value="year">This Year</option>
-                            <option value="custom">Custom Range</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="filter-group">
-                        <label class="filter-label">Type</label>
-                        <select class="form-select" id="transactionType">
-                            <option value="all">All Types</option>
-                            <option value="income">Income Only</option>
-                            <option value="expense">Expenses Only</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="filter-group">
-                        <label class="filter-label">Category</label>
-                        <select class="form-select" id="category">
-                            <option value="all">All Categories</option>
-                            <option value="salary">Salary Income</option>
-                            <option value="house">House</option>
-                            <option value="transportation">Transportation</option>
-                            <option value="groceries">Groceries</option>
-                            <option value="shopping">Shopping</option>
-                            <option value="entertainment">Entertainment</option>
-                        </select>
-                    </div>
-                </div>
-                <div class="col-md-3">
-                    <div class="filter-group">
-                        <label class="filter-label">Search</label>
-                        <input type="text" class="form-control" id="searchTerm" placeholder="Search transactions...">
-                    </div>
-                </div>
+    .text-balance-negative { color: #cc7000; } /* dark orange */
+    .text-balance-positive { color: #007bff; } /* blue */
+
+    .summary-cards {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr); /* 4 equal-width cards */
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .summary-card {
+        background: white;
+        padding: 1rem;
+        border-radius: 8px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+        text-align: center;
+    }
+
+    .fa-download {
+        font-size: 20px;
+    }
+
+    .summary-title { color:#6c757d; font-size:0.95rem; }
+    .summary-value { font-size:1.25rem; font-weight:700; margin-top:0.25rem; }
+
+    .transactions-container { background:white; padding:1rem; border-radius:8px; box-shadow:0 2px 6px rgba(0,0,0,0.12); }
+    .transaction-item { display:flex; align-items:center; gap:1rem; padding:0.75rem 0; border-bottom:1px solid #f1f1f1; }
+    .transaction-item:last-child { border-bottom: none; }
+    .transaction-icon { width:40px; height:40px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-weight:600; }
+    .transaction-details { flex:1; }
+    .transaction-meta { color:#6c757d; font-size:0.85rem; margin-top:0.25rem; display:flex; gap:1rem; flex-wrap:wrap; }
+    .transaction-amount { min-width:110px; text-align:right; font-weight:700; }
+    .transaction-amount.positive { color:#28a745; }
+    .transaction-amount.negative { color:#dc3545; }
+    .btn-action { background:none; border:none; color:#6c757d; padding:4px 6px; }
+    .btn-action:hover { color:#000; }
+
+    .pagination-container { margin-top:1rem; display:flex; justify-content:space-between; align-items:center; }
+
+    .form-select {
+        padding:7px;
+        margin-top:18px;
+    }
+
+    /* ===== RESPONSIVE MEDIA QUERIES ===== */
+
+    /* Large devices (desktops, 1200px and down) */
+    @@media (max-width: 1200px) {
+        .container-fluid {
+            padding-left: 2rem;
+            padding-right: 2rem;
+        }
+    }
+
+    /* Medium devices (tablets, 992px and down) */
+    @@media (max-width: 992px) {
+        .summary-cards {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.75rem;
+        }
+
+        .page-header .d-flex {
+            flex-direction: column;
+            align-items: flex-start !important;
+            gap: 1rem;
+        }
+
+        .page-header .d-flex .d-flex {
+            width: 100%;
+            justify-content: flex-start;
+        }
+
+        .filters-container .row {
+            gap: 1rem;
+        }
+
+        .filters-container .col-md-3 {
+            width: 100%;
+        }
+
+        .transaction-item {
+            gap: 0.75rem;
+            padding: 1rem 0;
+        }
+
+        .transaction-meta {
+            gap: 0.5rem;
+        }
+    }
+
+    /* Small devices (landscape phones, 768px and down) */
+    @@media (max-width: 768px) {
+        .container-fluid {
+            padding-left: 1rem;
+            padding-right: 1rem;
+            padding-top: 1rem;
+            padding-bottom: 1rem;
+        }
+
+        .summary-cards {
+            grid-template-columns: 1fr;
+            gap: 0.5rem;
+        }
+
+        .summary-card {
+            padding: 0.75rem;
+        }
+
+        .summary-value {
+            font-size: 1.1rem;
+        }
+
+        .filters-container .d-flex {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .filters-container .d-flex .btn {
+            width: 100%;
+            margin-bottom: 0.5rem;
+        }
+
+        .filters-container .d-flex .ms-auto {
+            margin-left: 0 !important;
+            margin-top: 1rem;
+        }
+
+        .transactions-container .d-flex {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 1rem;
+        }
+
+        .transaction-item {
+            flex-wrap: wrap;
+            position: relative;
+            padding: 1rem 0;
+        }
+
+        .transaction-icon {
+            width: 35px;
+            height: 35px;
+            font-size: 0.8rem;
+        }
+
+        .transaction-details {
+            min-width: calc(100% - 120px);
+        }
+
+        .transaction-amount {
+            position: absolute;
+            top: 1rem;
+            right: 0;
+            min-width: auto;
+        }
+
+        .transaction-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+            width: 100%;
+            justify-content: flex-end;
+        }
+
+        .transaction-meta {
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .pagination-container {
+            flex-direction: column;
+            gap: 1rem;
+            text-align: center;
+        }
+
+        .pagination {
+            justify-content: center;
+        }
+    }
+
+    /* Extra small devices (phones, 576px and down) */
+    @@media (max-width: 576px) {
+        .container-fluid {
+            padding-left: 0.5rem;
+            padding-right: 0.5rem;
+        }
+
+        .page-header h1 {
+            font-size: 1.5rem;
+        }
+
+        .page-header .btn {
+            font-size: 0.85rem;
+            padding: 0.5rem 0.75rem;
+        }
+
+        .page-header .d-flex .d-flex {
+            flex-direction: column;
+            width: 100%;
+        }
+
+        .page-header .d-flex .d-flex .btn {
+            width: 100%;
+            margin-bottom: 0.5rem;
+        }
+
+        .summary-card {
+            padding: 0.5rem;
+        }
+
+        .summary-title {
+            font-size: 0.85rem;
+        }
+
+        .summary-value {
+            font-size: 1rem;
+        }
+
+        .filters-container h5 {
+            font-size: 1.1rem;
+        }
+
+        .filter-label {
+            font-size: 0.9rem;
+        }
+
+        .form-select, .form-control {
+            font-size: 0.9rem;
+        }
+
+        .transactions-container {
+            padding: 0.75rem;
+        }
+
+        .transactions-container h5 {
+            font-size: 1.1rem;
+        }
+
+        .transaction-item {
+            gap: 0.5rem;
+        }
+
+        .transaction-name {
+            font-size: 0.9rem;
+        }
+
+        .transaction-meta {
+            font-size: 0.75rem;
+        }
+
+        .transaction-amount {
+            font-size: 0.9rem;
+        }
+
+        .btn-action {
+            padding: 3px 5px;
+        }
+
+        .results-info {
+            font-size: 0.85rem;
+            text-align: center;
+        }
+
+        .pagination .page-link {
+            padding: 0.375rem 0.5rem;
+            font-size: 0.8rem;
+        }
+
+        /* Export and sort controls */
+        .transactions-container .d-flex .d-flex {
+            flex-direction: column;
+            width: 100%;
+            gap: 0.5rem;
+        }
+
+        #exportBtnTop, #sortSelect {
+            width: 100%;
+        }
+
+        #sortSelect {
+            margin-left: 0 !important;
+        }
+
+        .fw-bold{
+            color: #000;
+        }
+    }
+
+    /* Very small devices (phones, 400px and down) */
+    @@media (max-width: 400px) {
+        .container-fluid {
+            padding-left: 0.25rem;
+            padding-right: 0.25rem;
+        }
+
+        .summary-cards {
+            gap: 0.25rem;
+        }
+
+        .summary-card {
+            padding: 0.5rem 0.25rem;
+        }
+
+        .transaction-item {
+            padding: 0.75rem 0;
+        }
+
+        .transaction-icon {
+            width: 30px;
+            height: 30px;
+            font-size: 0.7rem;
+        }
+
+        .transaction-details {
+            min-width: calc(100% - 100px);
+        }
+
+        .pagination .page-link {
+            padding: 0.25rem 0.375rem;
+            font-size: 0.75rem;
+        }
+
+        .pagination-container .results-info {
+            font-size: 0.8rem;
+        }
+    }
+
+    /* Large screens (desktops, 1400px and up) */
+    @@media (min-width: 1400px) {
+        .container-fluid {
+            max-width: 1320px;
+            margin: 0 auto;
+        }
+    }
+
+    /* Print styles */
+    @@media print {
+        .btn, .filters-container, .transaction-actions, .fa-download {
+            display: none !important;
+        }
+
+        .transactions-container {
+            box-shadow: none;
+            border: 1px solid #ddd;
+        }
+
+        .summary-cards {
+            grid-template-columns: repeat(4, 1fr);
+        }
+    }
+
+    /* High DPI screens */
+    @@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+        .summary-card, .transactions-container {
+            box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+        }
+    }
+
+    /* Dark mode support */
+    @@media (prefers-color-scheme: dark) {
+        @@media (max-width: 768px) {
+            .summary-card, .transactions-container {
+                background-color: #000;
+                color: #e2e8f0;
+            }
+
+            .text-muted {
+                color: #a0aec0 !important;
+            }
+        }
+    }
+</style>
+
+<!-- <style>
+    body {
+        background-color: #f8f9fa !important;
+    }
+
+    .container-fluid {
+        background-color: transparent !important;
+    }
+
+    /* Balance colors */
+    .text-balance-negative { color: #cc7000; } /* dark orange */
+    .text-balance-positive { color: #007bff; } /* blue */
+
+    /* Summary Cards */
+    .summary-cards {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr); /* 4 equal-width cards */
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .summary-card {
+        background: white;
+        padding: 1rem;
+        border-radius: 8px;
+        box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        text-align: center;
+    }
+
+    .summary-title { color:#6c757d; font-size:0.95rem; }
+    .summary-value { font-size:1.25rem; font-weight:700; margin-top:0.25rem; }
+
+    .fa-download { font-size: 20px; }
+
+    /* Transactions */
+    .transactions-container {
+        background:white;
+        padding:1rem;
+        border-radius:8px;
+        box-shadow:0 1px 3px rgba(0,0,0,0.05);
+    }
+
+    .transaction-item {
+        display:flex;
+        align-items:center;
+        gap:1rem;
+        padding:0.75rem 0;
+        border-bottom:1px solid #f1f1f1;
+    }
+    .transaction-item:last-child { border-bottom: none; }
+
+    .transaction-icon {
+        width:40px; height:40px;
+        border-radius:8px;
+        display:flex; align-items:center; justify-content:center;
+        font-weight:600;
+    }
+
+    .transaction-details { flex:1; }
+    .transaction-meta {
+        color:#6c757d;
+        font-size:0.85rem;
+        margin-top:0.25rem;
+        display:flex; gap:1rem; flex-wrap:wrap;
+    }
+
+    .transaction-amount { min-width:110px; text-align:right; font-weight:700; }
+    .transaction-amount.positive { color:#28a745; }
+    .transaction-amount.negative { color:#dc3545; }
+
+    .btn-action {
+        background:none;
+        border:none;
+        color:#6c757d;
+        padding:4px 6px;
+    }
+    .btn-action:hover { color:#000; }
+
+    .pagination-container {
+        margin-top:1rem;
+        display:flex;
+        justify-content:space-between;
+        align-items:center;
+        flex-wrap:wrap;
+        gap:0.5rem;
+    }
+
+    /* Form elements */
+    .form-select {
+       padding:7px;
+       margin-top:18px;
+    }
+
+    /* Responsive Adjustments */
+    @@media (max-width: 1200px) {
+        .summary-cards {
+            grid-template-columns: repeat(2, 1fr); /* 2 cards per row */
+        }
+    }
+
+    @@media (max-width: 767px) {
+        .summary-cards {
+            grid-template-columns: 1fr; /* single column on phones */
+        }
+        .transaction-item {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+        .transaction-amount {
+            text-align: left;
+            margin-top: 0.5rem;
+        }
+        .d-flex.gap-2.align-items-center {
+            flex-direction: column;
+            align-items: flex-start !important;
+            gap: 0.5rem;
+        }
+        .pagination-container {
+            flex-direction: column;
+            align-items: flex-start;
+        }
+    }
+</style> -->
+
+
+
+<div class="container-fluid px-4 py-4">
+    <!-- Page Header -->
+    <div class="page-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h1 class="h3 mb-0 fw-bold" style="color:black">All Transactions</h1>
+                <p class="text-muted mb-0">View and manage all your financial transactions</p>
+                <br>
             </div>
-            <div class="d-flex gap-2 mt-3">
-                <button class="btn btn-filter" onclick="applyFilters()">
-                    <i class="fas fa-filter me-2"></i>Apply Filters
-                </button>
-                <button class="btn btn-clear" onclick="clearFilters()">
-                    <i class="fas fa-times me-2"></i>Clear All
-                </button>
-            </div>
-        </div>
-
-        <!-- Transactions List -->
-        <div class="transactions-container">
-            <div class="d-flex justify-content-between align-items-center mb-3">
-                <h5 class="mb-0">Recent Transactions</h5>
-                <div class="d-flex gap-2">
-                    <button class="btn btn-sm btn-outline-secondary">
-                        <i class="fas fa-download me-1"></i>Export
-                    </button>
-                    <select class="form-select form-select-sm" style="width: auto;">
-                        <option>Sort by Date</option>
-                        <option>Sort by Amount</option>
-                        <option>Sort by Category</option>
-                    </select>
-                </div>
-            </div>
-            
-            <div id="transactionsList">
-                <!-- Income Transactions -->
-                <div class="transaction-item">
-                    <div class="transaction-icon" style="background-color: #d4edda; color: #155724;">
-                        OR
-                    </div>
-                    <div class="transaction-details">
-                        <div class="transaction-name">Orlando Rodriguez</div>
-                        <div class="transaction-meta">
-                            <span><i class="fas fa-tag me-1"></i>Salary Income</span>
-                            <span><i class="fas fa-credit-card me-1"></i>Bank account</span>
-                            <span><i class="fas fa-calendar me-1"></i>2024/04/01</span>
-                        </div>
-                    </div>
-                    <div class="transaction-amount positive">+$750.00</div>
-                    <div class="transaction-actions">
-                        <button class="btn-action" title="Edit">
-                            <i class="fas fa-edit"></i>
-                        </button>
-                        <button class="btn-action" title="Delete">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                        <button class="btn-action" title="More">
-                            <i class="fas fa-ellipsis-v"></i>
-                        </button>
-                    </div>
-                </div>
-
-                <div class="transaction-item">
-                    <div class="transaction-icon" style="background-color: #fff3cd; color: #856404;">
-                        CA
-                    </div>
-                    <div class="transaction-details">
-                        <div class="transaction-name">Carl Andrew</div>
-                        <div class="transaction-meta">
-                            <span><i class="fas fa-tag me-1"></i>Freelance Work</span>
-                            <span><i class="fas fa-credit-card me-1"></i>Bank account</span>
-                            <span><i class="fas fa-calendar me-1"></i>2024/03/27</span>
-                        </div>
-                    </div>
-                    <div class="transaction-amount positive">+$300.00</div>
-                    <div class="transaction-actions">
-                        <button class="btn-action" title="Edit">
-                            <i class="fas fa-edit"></i>
-                        </button>
-                        <button class="btn-action" title="Delete">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                        <button class="btn-action" title="More">
-                            <i class="fas fa-ellipsis-v"></i>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Expense Transactions -->
-                <div class="transaction-item">
-                    <div class="transaction-icon" style="background-color: #343a40; color: white;">
-                        A
-                    </div>
-                    <div class="transaction-details">
-                        <div class="transaction-name">Amazon</div>
-                        <div class="transaction-meta">
-                            <span><i class="fas fa-tag me-1"></i>Shopping</span>
-                            <span><i class="fas fa-credit-card me-1"></i>Credit card</span>
-                            <span><i class="fas fa-calendar me-1"></i>2024/03/24</span>
-                        </div>
-                    </div>
-                    <div class="transaction-amount negative">-$147.00</div>
-                    <div class="transaction-actions">
-                        <button class="btn-action" title="Edit">
-                            <i class="fas fa-edit"></i>
-                        </button>
-                        <button class="btn-action" title="Delete">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                        <button class="btn-action" title="More">
-                            <i class="fas fa-ellipsis-v"></i>
-                        </button>
-                    </div>
-                </div>
-
-                <div class="transaction-item">
-                    <div class="transaction-icon" style="background-color: #e2e3e5; color: #383d41;">
-                        CM
-                    </div>
-                    <div class="transaction-details">
-                        <div class="transaction-name">Carrefour Market</div>
-                        <div class="transaction-meta">
-                            <span><i class="fas fa-tag me-1"></i>Groceries</span>
-                            <span><i class="fas fa-credit-card me-1"></i>Credit card</span>
-                            <span><i class="fas fa-calendar me-1"></i>2024/03/26</span>
-                        </div>
-                    </div>
-                    <div class="transaction-amount negative">-$64.33</div>
-                    <div class="transaction-actions">
-                        <button class="btn-action" title="Edit">
-                            <i class="fas fa-edit"></i>
-                        </button>
-                        <button class="btn-action" title="Delete">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                        <button class="btn-action" title="More">
-                            <i class="fas fa-ellipsis-v"></i>
-                        </button>
-                    </div>
-                </div>
-
-                <div class="transaction-item">
-                    <div class="transaction-icon" style="background-color: #d1ecf1; color: #0c5460;">
-                        N
-                    </div>
-                    <div class="transaction-details">
-                        <div class="transaction-name">Netflix</div>
-                        <div class="transaction-meta">
-                            <span><i class="fas fa-tag me-1"></i>Entertainment</span>
-                            <span><i class="fas fa-credit-card me-1"></i>Credit card</span>
-                            <span><i class="fas fa-calendar me-1"></i>2024/03/29</span>
-                        </div>
-                    </div>
-                    <div class="transaction-amount negative">-$9.90</div>
-                    <div class="transaction-actions">
-                        <button class="btn-action" title="Edit">
-                            <i class="fas fa-edit"></i>
-                        </button>
-                        <button class="btn-action" title="Delete">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                        <button class="btn-action" title="More">
-                            <i class="fas fa-ellipsis-v"></i>
-                        </button>
-                    </div>
-                </div>
-
-                <div class="transaction-item">
-                    <div class="transaction-icon" style="background-color: #d4edda; color: #155724;">
-                        S
-                    </div>
-                    <div class="transaction-details">
-                        <div class="transaction-name">Spotify</div>
-                        <div class="transaction-meta">
-                            <span><i class="fas fa-tag me-1"></i>Entertainment</span>
-                            <span><i class="fas fa-credit-card me-1"></i>Credit card</span>
-                            <span><i class="fas fa-calendar me-1"></i>2024/03/29</span>
-                        </div>
-                    </div>
-                    <div class="transaction-amount negative">-$19.90</div>
-                    <div class="transaction-actions">
-                        <button class="btn-action" title="Edit">
-                            <i class="fas fa-edit"></i>
-                        </button>
-                        <button class="btn-action" title="Delete">
-                            <i class="fas fa-trash"></i>
-                        </button>
-                        <button class="btn-action" title="More">
-                            <i class="fas fa-ellipsis-v"></i>
-                        </button>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Pagination -->
-            <div class="pagination-container">
-                <div class="results-info">
-                    Showing 1-6 of 47 transactions
-                </div>
-                <nav>
-                    <ul class="pagination pagination-sm mb-0">
-                        <li class="page-item disabled">
-                            <a class="page-link" href="#" tabindex="-1">Previous</a>
-                        </li>
-                        <li class="page-item active">
-                            <a class="page-link" href="#">1</a>
-                        </li>
-                        <li class="page-item">
-                            <a class="page-link" href="#">2</a>
-                        </li>
-                        <li class="page-item">
-                            <a class="page-link" href="#">3</a>
-                        </li>
-                        <li class="page-item">
-                            <a class="page-link" href="#">Next</a>
-                        </li>
-                    </ul>
-                </nav>
+            <div class="d-flex gap-2">
+                <a asp-controller="Transactions" asp-action="AddIncome" class="btn btn-success">
+                    <i class="fas fa-plus me-2"></i>Add Income
+                </a>
+                <a asp-controller="Transactions" asp-action="AddExpense" class="btn btn-danger">
+                    <i class="fas fa-plus me-2"></i>Add Expense
+                </a>
             </div>
         </div>
     </div>
+
+    <!-- Summary Cards -->
+    <!-- <div class="summary-cards">
+        <div class="summary-card">
+            <div class="summary-title">Total Income</div>
+            <div class="summary-value income">@totalIncome.ToString("C")</div>
+        </div>
+        <div class="summary-card">
+            <div class="summary-title">Total Expenses</div>
+            <div class="summary-value expense">@totalExpenses.ToString("C")</div>
+        </div>
+        <div class="summary-card">
+            <div class="summary-title">Net Balance</div>
+            <div class="summary-value @balanceClass">
+                @(netBalance < 0 ? "-" + Math.Abs(netBalance).ToString("C") : netBalance.ToString("C"))
+            </div>
+        </div>
+        <div class="summary-card">
+            <div class="summary-title">Transactions</div>
+            <div class="summary-value">@transactionsCount</div>
+        </div>
+    </div> -->
+
+    <!-- Summary Cards -->
+<div class="summary-cards">
+    <div class="summary-card">
+        <div class="summary-title">Total Income</div>
+        <div class="summary-value income">@totalIncome.ToString("C")</div>
+    </div>
+    <div class="summary-card">
+        <div class="summary-title">Total Expenses</div>
+        <div class="summary-value expense">@totalExpenses.ToString("C")</div>
+    </div>
+    <div class="summary-card">
+        <div class="summary-title">Net Balance</div>
+        <div class="summary-value @balanceClass">
+            @(netBalance < 0 ? "-" + Math.Abs(netBalance).ToString("C") : netBalance.ToString("C"))
+        </div>
+    </div>
+    <div class="summary-card">
+        <div class="summary-title">Transactions</div>
+        <div class="summary-value">@transactionsCount</div>
+    </div>
+</div>
+
+
+    <!-- Filters -->
+    <div class="filters-container mb-3">
+        <h5 class="mb-3">Filter Transactions</h5>
+        <div class="row g-3">
+            <div class="col-md-3">
+                <label class="filter-label">Date Range</label>
+                <select class="form-select" id="dateRange">
+                    <option value="all" selected="@(dateRange=="all" ? "selected" : null)">All Time</option>
+                    <option value="today" selected="@(dateRange=="today" ? "selected" : null)">Today</option>
+                    <option value="week" selected="@(dateRange=="week" ? "selected" : null)">This Week</option>
+                    <option value="month" selected="@(dateRange=="month" ? "selected" : null)">This Month</option>
+                    <option value="quarter" selected="@(dateRange=="quarter" ? "selected" : null)">This Quarter</option>
+                    <option value="year" selected="@(dateRange=="year" ? "selected" : null)">This Year</option>
+                </select>
+            </div>
+
+            <div class="col-md-3">
+                <label class="filter-label">Type</label>
+                <select class="form-select" id="transactionType">
+                    <option value="all" selected="@(typeFilter=="all" ? "selected" : null)">All Types</option>
+                    <option value="income" selected="@(typeFilter=="income" ? "selected" : null)">Income Only</option>
+                    <option value="expense" selected="@(typeFilter=="expense" ? "selected" : null)">Expenses Only</option>
+                </select>
+            </div>
+
+            <div class="col-md-3">
+                <label class="filter-label">Category</label>
+                <select class="form-select" id="category">
+                    <option value="0" selected="@(categoryId==0 ? "selected" : null)">All Categories</option>
+                    @foreach (var cat in categories)
+                    {
+                        <option value="@cat.Id" selected="@(categoryId == cat.Id ? "selected" : null)">@cat.Name</option>
+                    }
+                </select>
+            </div>
+
+            <div class="col-md-3">
+                <label class="filter-label">Search</label>
+                <input type="text" class="form-control" id="searchTerm" placeholder="Search transactions..." value="@searchTerm" style="padding:7px; margin-top:18px;">
+            </div>
+        </div>
+
+        <div class="d-flex gap-2 mt-3">
+            <button class="btn btn-filter btn-primary btn-sm" onclick="applyFilters()">
+                <i class="fas fa-filter me-2"></i>Apply Filters
+            </button>
+            <button class="btn btn-clear btn-outline-secondary btn-sm" onclick="clearFilters()">
+                <i class="fas fa-times me-2"></i>Clear All
+            </button>
+
+            <a id="exportBtn" class="btn-outline-secondary ms-auto" href="@Url.Action("Export", "Transactions", new { dateRange, type = typeFilter, categoryId, search = searchTerm, sort })">
+                <!-- <i class="fas fa-download me-1"></i>Export CSV -->
+            </a>
+
+            <!-- <select id="sortSelect" class="form-select form-select-sm" style="width:auto; margin-left:8px" onchange="changeSort()">
+                <option value="date_desc" selected="@(sort=="date_desc" ? "selected" : null)">Sort by Date (newest)</option>
+                <option value="date_asc" selected="@(sort=="date_asc" ? "selected" : null)">Sort by Date (oldest)</option>
+                <option value="amount_desc" selected="@(sort=="amount_desc" ? "selected" : null)">Sort by Amount (high→low)</option>
+                <option value="amount_asc" selected="@(sort=="amount_asc" ? "selected" : null)">Sort by Amount (low→high)</option>
+                <option value="category_asc" selected="@(sort=="category_asc" ? "selected" : null)">Sort by Category (A→Z)</option>
+                <option value="category_desc" selected="@(sort=="category_desc" ? "selected" : null)">Sort by Category (Z→A)</option>
+            </select> -->
+        </div>
+    </div>
+
+    <!-- Transactions List -->
+    <!-- <div class="transactions-container">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="mb-0">Recent Transactions</h5>
+            <a id="exportBtnTop" class="btn btn-sm btn-outline-secondary" href="@Url.Action("Export", "Transactions", new { dateRange, type = typeFilter, categoryId, search = searchTerm, sort })">
+                <i class="fas fa-download me-1"></i>Export CSV
+            </a>
+        </div> -->
+
+        <!-- Transactions List -->
+<div class="transactions-container">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="mb-0">Recent Transactions</h5>
+        <div class="d-flex gap-2 align-items-center">
+            <a id="exportBtnTop" class="btn btn-sm btn-outline-secondary" href="@Url.Action("Export", "Transactions", new { dateRange, type = typeFilter, categoryId, search = searchTerm, sort })">
+                <i class="fas fa-download me-1"></i>Export CSV
+            </a>
+            <select id="sortSelect" class="form-select form-select-sm" style="width:auto;" onchange="changeSort()">
+                <option value="date_desc" selected="@(sort=="date_desc" ? "selected" : null)">Sort by Date (newest)</option>
+                <option value="date_asc" selected="@(sort=="date_asc" ? "selected" : null)">Sort by Date (oldest)</option>
+                <option value="amount_desc" selected="@(sort=="amount_desc" ? "selected" : null)">Sort by Amount (high→low)</option>
+                <option value="amount_asc" selected="@(sort=="amount_asc" ? "selected" : null)">Sort by Amount (low→high)</option>
+                <option value="category_asc" selected="@(sort=="category_asc" ? "selected" : null)">Sort by Category (A→Z)</option>
+                <option value="category_desc" selected="@(sort=="category_desc" ? "selected" : null)">Sort by Category (Z→A)</option>
+            </select>
+        </div>
+    </div>
+
+
+        <div id="transactionsList">
+            @if (!Model.Any())
+            {
+                <div class="text-muted">No transactions found.</div>
+            }
+            else
+            {
+                foreach (var tx in Model)
+                {
+                    <div class="transaction-item">
+                        <div class="transaction-icon" style="background-color:@(tx.IsIncome ? "#d4edda" : "#f8d7da"); color:@(tx.IsIncome ? "#155724" : "#721c24");">
+                            @GetInitials(tx.Description)
+                        </div>
+                        <div class="transaction-details">
+                            <div class="transaction-name">@tx.Description</div>
+                            <div class="transaction-meta">
+                                <span><i class="fas fa-tag me-1"></i>@(tx.Category?.Name ?? "Uncategorized")</span>
+                                <span><i class="fas fa-credit-card me-1"></i>@(tx.Account?.Name ?? "N/A")</span>
+                                <span><i class="fas fa-calendar me-1"></i>@tx.Date.ToShortDateString()</span>
+                            </div>
+                        </div>
+                        <div class="transaction-amount @(tx.IsIncome ? "positive" : "negative")">
+                            @(tx.IsIncome ? "+" : "-")@tx.Amount.ToString("C")
+                        </div>
+                        <div class="transaction-actions">
+                            <a asp-controller="Transactions" asp-action="@(tx.IsIncome ? "EditIncome" : "EditExpense")" asp-route-id="@tx.Id" class="btn-action" title="Edit">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            <form asp-controller="Transactions" asp-action="@(tx.IsIncome ? "DeleteIncomeConfirmed" : "DeleteExpenseConfirmed")" method="post" class="d-inline" onsubmit="return confirm('Are you sure?');">
+                                @Html.AntiForgeryToken()
+                                <input type="hidden" name="id" value="@tx.Id" />
+                                <button type="submit" class="btn-action text-danger" title="Delete">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                }
+            }
+        </div>
+
+        <!-- Pagination -->
+        <div class="pagination-container">
+            <div class="results-info">
+                Showing page @currentPage of @totalPages — @transactionsCount result(s)
+            </div>
+            <nav>
+                <ul class="pagination pagination-sm mb-0">
+                    <li class="page-item @(currentPage <= 1 ? "disabled" : "")">
+                        <a class="page-link" href="javascript:goToPage(@(currentPage - 1))">Previous</a>
+                    </li>
+                    @for (int p = Math.Max(1, currentPage - 3); p <= Math.Min(totalPages, currentPage + 3); p++)
+                    {
+                        <li class="page-item @(p == currentPage ? "active" : "")">
+                            <a class="page-link" href="javascript:goToPage(@p)">@p</a>
+                        </li>
+                    }
+                    <li class="page-item @(currentPage >= totalPages ? "disabled" : "")">
+                        <a class="page-link" href="javascript:goToPage(@(currentPage + 1))">Next</a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function buildQueryString(overrides = {}) {
+            const dateRange = overrides.dateRange ?? document.getElementById('dateRange').value;
+            const type = overrides.type ?? document.getElementById('transactionType').value;
+            const categoryId = overrides.categoryId ?? document.getElementById('category').value;
+            const search = overrides.search ?? document.getElementById('searchTerm').value;
+            const sort = overrides.sort ?? document.getElementById('sortSelect').value;
+
+            // ✅ FIX: currentPage instead of page
+            const pageNum = overrides.page ?? @Html.Raw(currentPage);
+            const pageSize = overrides.pageSize ?? @Html.Raw(pageSize);
+
+            const params = new URLSearchParams();
+            if (dateRange) params.append('dateRange', dateRange);
+            if (type) params.append('type', type);
+            if (categoryId) params.append('categoryId', categoryId);
+            if (search) params.append('search', search);
+            if (sort) params.append('sort', sort);
+            if (pageNum) params.append('page', pageNum);
+            if (pageSize) params.append('pageSize', pageSize);
+            return params.toString();
+        }
+
+        function applyFilters() {
+            const qs = buildQueryString({ page: 1 });
+            window.location = '@Url.Action("Index","Transactions")' + '?' + qs;
+        }
+
+        function clearFilters() {
+            document.getElementById('dateRange').value = 'month';
+            document.getElementById('transactionType').value = 'all';
+            document.getElementById('category').value = '0';
+            document.getElementById('searchTerm').value = '';
+            document.getElementById('sortSelect').value = 'date_desc';
+            applyFilters();
+        }
+
+        function changeSort() {
+            const qs = buildQueryString({ page: 1 });
+            window.location = '@Url.Action("Index","Transactions")' + '?' + qs;
+        }
+
+        function goToPage(p) {
+            const qs = buildQueryString({ page: p });
+            window.location = '@Url.Action("Index","Transactions")' + '?' + qs;
+        }
+
+        (function updateExportLinks() {
+            const qs = buildQueryString();
+            var url = '@Url.Action("Export", "Transactions")' + '?' + qs;
+            document.getElementById('exportBtn').href = url;
+            document.getElementById('exportBtnTop').href = url;
+        })();
+    </script>
+}
+
+@functions {
+    private string GetInitials(string description)
+    {
+        if (string.IsNullOrWhiteSpace(description)) return "";
+        var words = description.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (words.Length == 1) return words[0].Substring(0, 1).ToUpper();
+        return (words[0][0].ToString() + words[1][0].ToString()).ToUpper();
+    }
+}

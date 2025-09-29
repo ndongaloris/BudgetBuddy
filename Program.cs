@@ -1,10 +1,12 @@
+// Financy/Program.cs
+
 using Microsoft.EntityFrameworkCore;
 using Financy.Data;
 using Microsoft.AspNetCore.Identity;
 using Financy.Models;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Google;
-using AspNet.Security.OAuth.GitHub; // ✅ Needed for GitHub auth
+using AspNet.Security.OAuth.GitHub;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -109,7 +111,23 @@ using (var scope = app.Services.CreateScope())
     var services = scope.ServiceProvider;
     try
     {
-        SeedData.Initialize(services);
+        var context = services.GetRequiredService<FinancyContext>();
+        context.Database.EnsureCreated();
+        
+        // Check if categories already exist to avoid duplicates
+        if (!context.Categories.Any())
+        {
+            context.Categories.AddRange(
+                new Category { Name = "House", Color = "#FF6384" },
+                new Category { Name = "Savings", Color = "#36A2EB" },
+                new Category { Name = "Transportation", Color = "#FFCE56" },
+                new Category { Name = "Groceries", Color = "#4BC0C0" },
+                new Category { Name = "Shopping", Color = "#9966FF" },
+                new Category { Name = "Entertainment", Color = "#FF9F40" },
+                new Category { Name = "Income", Color = "#2ecc71" }
+            );
+            await context.SaveChangesAsync();
+        }
     }
     catch (Exception ex)
     {

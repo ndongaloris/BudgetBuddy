@@ -1,0 +1,445 @@
+@* File: Views/FinancialAccounts/Index.cshtml *@
+
+@model IEnumerable<Financy.Models.Account>
+
+@{
+    ViewData["Title"] = "My Accounts - Financy";
+    Layout = "_Layout";
+
+    // Ensure ViewBag.TotalBalance is a decimal (controller sets it)
+    var totalBalance = (ViewBag.TotalBalance as decimal?) ?? 0m;
+    var totalNegative = totalBalance < 0m;
+    string totalClass = totalNegative ? "text-balance-negative" : "text-success";
+}
+
+@functions {
+    // pick icon color based on account type
+    string GetAccountIconColor(string type)
+    {
+        return type?.ToLower() switch
+        {
+            "checking" => "#1976d2",   // blue
+            "savings" => "#28a745",    // green
+            "credit" or "credit card" => "#f57c00", // orange
+            _ => "#6c757d"             // gray default
+        };
+    }
+
+    // pick font-awesome icon based on account type
+    string GetAccountIcon(string type)
+    {
+        return type?.ToLower() switch
+        {
+            "checking" => "fas fa-university",
+            "savings" => "fas fa-piggy-bank",
+            "credit" or "credit card" => "fas fa-credit-card",
+            _ => "fas fa-wallet"
+        };
+    }
+}
+
+<style>
+    body {
+        background-color: #f8f9fa !important;
+    }
+
+    .container-fluid {
+        background-color: transparent !important;
+    }
+
+    .my-account { color: #000; }
+    .manage-finance { padding-bottom: 10px; }
+
+    /* negative color (dark orange) */
+    .text-balance-negative { color: #cc7000 !important; }
+
+    /* account balance classes */
+    .account-balance.positive { color: #28a745; font-weight: 700; font-size: 1.25rem; }
+    .account-balance.negative { color: #cc7000; font-weight: 700; font-size: 1.25rem; }
+
+    .account-balance-large.positive { color: #28a745; }
+    .account-balance-large.negative { color: #cc7000; }
+</style>
+
+<div class="container-fluid px-4 py-4">
+    <div class="page-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h1 class="h3 mb-0 fw-bold my-account">My Accounts</h1>
+                <p class="text-muted mb-0 manage-finance">Manage your financial accounts and track balances</p>
+            </div><br>
+            <button id="openAddAccountBtn" class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addAccountModal">
+                <i class="fas fa-plus me-2"></i>Add Account
+            </button>
+        </div>
+    </div>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle me-2"></i>
+            @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+
+    <div class="summary-section mb-4">
+    <h5 class="mb-3">Account Summary</h5>
+    <div class="summary-grid d-flex gap-3 justify-content-between">
+        <div class="summary-item p-3 bg-white rounded shadow-sm flex-fill" style="min-width:180px; max-width: calc(25% - 12px);">
+            <div class="d-flex align-items-center gap-2">
+                <div class="summary-icon p-2 rounded" style="background-color: #e8f5e8; color: #28a745;">
+                    <i class="fas fa-wallet"></i>
+                </div>
+                <div>
+                    <div class="summary-title small text-muted">Total Balance</div>
+                    <div class="summary-value fw-bold @totalClass">
+                        @(
+                            totalNegative
+                            ? "-" + Math.Abs(totalBalance).ToString("C")
+                            : totalBalance.ToString("C")
+                        )
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="summary-item p-3 bg-white rounded shadow-sm flex-fill" style="min-width:160px; max-width: calc(25% - 12px);">
+            <div class="d-flex align-items-center gap-2">
+                <div class="summary-icon p-2 rounded" style="background-color: #e3f2fd; color: #1976d2;">
+                    <i class="fas fa-university"></i>
+                </div>
+                <div>
+                    <div class="summary-title small text-muted">Total Accounts</div>
+                    <div class="summary-value fw-bold">@ViewBag.TotalAccounts</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="summary-item p-3 bg-white rounded shadow-sm flex-fill" style="min-width:160px; max-width: calc(25% - 12px);">
+            <div class="d-flex align-items-center gap-2">
+                <div class="summary-icon p-2 rounded" style="background-color: #fff3e0; color: #f57c00;">
+                    <i class="fas fa-credit-card"></i>
+                </div>
+                <div>
+                    <div class="summary-title small text-muted">Credit Cards</div>
+                    <div class="summary-value fw-bold">@ViewBag.CreditCards</div>
+                </div>
+            </div>
+        </div>
+
+        <div class="summary-item p-3 bg-white rounded shadow-sm flex-fill" style="min-width:160px; max-width: calc(25% - 12px);">
+            <div class="d-flex align-items-center gap-2">
+                <div class="summary-icon p-2 rounded" style="background-color: #f3e5f5; color: #7b1fa2;">
+                    <i class="fas fa-chart-line"></i>
+                </div>
+                <div>
+                    <div class="summary-title small text-muted">Checking Accounts</div>
+                    <div class="summary-value fw-bold">@ViewBag.CheckingAccounts</div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+    <!-- <div class="summary-section mb-4">
+        <h5 class="mb-3">Account Summary</h5>
+        <div class="summary-grid d-flex gap-3 flex-wrap">
+            <div class="summary-item p-3 bg-white rounded shadow-sm" style="min-width:180px;">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="summary-icon p-2 rounded" style="background-color: #e8f5e8; color: #28a745;">
+                        <i class="fas fa-wallet"></i>
+                    </div>
+                    <div>
+                        <div class="summary-title small text-muted">Total Balance</div>
+                        <div class="summary-value fw-bold @totalClass">
+                            @(
+                                totalNegative
+                                ? "-" + Math.Abs(totalBalance).ToString("C")
+                                : totalBalance.ToString("C")
+                            )
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="summary-item p-3 bg-white rounded shadow-sm" style="min-width:160px;">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="summary-icon p-2 rounded" style="background-color: #e3f2fd; color: #1976d2;">
+                        <i class="fas fa-university"></i>
+                    </div>
+                    <div>
+                        <div class="summary-title small text-muted">Total Accounts</div>
+                        <div class="summary-value fw-bold">@ViewBag.TotalAccounts</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="summary-item p-3 bg-white rounded shadow-sm" style="min-width:160px;">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="summary-icon p-2 rounded" style="background-color: #fff3e0; color: #f57c00;">
+                        <i class="fas fa-credit-card"></i>
+                    </div>
+                    <div>
+                        <div class="summary-title small text-muted">Credit Cards</div>
+                        <div class="summary-value fw-bold">@ViewBag.CreditCards</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="summary-item p-3 bg-white rounded shadow-sm" style="min-width:160px;">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="summary-icon p-2 rounded" style="background-color: #f3e5f5; color: #7b1fa2;">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <div>
+                        <div class="summary-title small text-muted">Checking Accounts</div>
+                        <div class="summary-value fw-bold">@ViewBag.CheckingAccounts</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div> -->
+
+    <div class="row">
+        @foreach (var account in Model)
+        {
+            var isNegative = account.Balance < 0m;
+            <div class="col-lg-6 mb-4">
+                <div class="account-card p-3 bg-white rounded shadow-sm h-100">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div class="d-flex align-items-center">
+                            <div class="account-icon me-3" style="width:48px;height:48px;border-radius:50%;background:@GetAccountIconColor(account.Type);color:white;display:flex;align-items:center;justify-content:center;">
+                                <i class="@GetAccountIcon(account.Type)"></i>
+                            </div>
+                            <div>
+                                <div class="account-name fw-semibold">@account.Name</div>
+                                <div class="text-muted small">@account.Type</div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex align-items-center gap-2">
+                            <a asp-action="Details" asp-route-id="@account.Id" class="btn btn-sm btn-light" title="View Details">
+                                <i class="fas fa-eye"></i>
+                            </a>
+                            <a href="#" class="btn btn-sm btn-light text-warning edit-account" data-id="@account.Id" data-name="@account.Name" data-type="@account.Type" data-balance="@account.Balance" title="Edit Account">
+                                <i class="fas fa-edit"></i>
+                            </a>
+                            <a href="#" class="btn btn-sm btn-light text-danger delete-account" data-id="@account.Id" data-name="@account.Name" title="Delete Account">
+                                <i class="fas fa-trash"></i>
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="mt-3">
+                        <div class="account-balance @(isNegative ? "negative" : "positive")">
+                            @(
+                                isNegative
+                                ? "-" + Math.Abs(account.Balance).ToString("C")
+                                : account.Balance.ToString("C")
+                            )
+                        </div>
+
+                        <div class="account-details mt-3 d-flex gap-3">
+                            <div class="detail-item p-2 bg-light rounded" style="min-width:120px;">
+                                <div class="detail-label small text-muted">Available</div>
+                                <div class="detail-value">
+                                    @(
+                                        isNegative
+                                        ? "-" + Math.Abs(account.Balance).ToString("C")
+                                        : account.Balance.ToString("C")
+                                    )
+                                </div>
+                            </div>
+
+                            <div class="detail-item p-2 bg-light rounded" style="min-width:120px;">
+                                <div class="detail-label small text-muted">Type</div>
+                                <div class="detail-value">@account.Type</div>
+                            </div>
+
+                            <div class="detail-item p-2 bg-light rounded" style="min-width:120px;">
+                                <div class="detail-label small text-muted">Last Updated</div>
+                                <div class="detail-value">Just now</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+
+        @if (!Model.Any())
+        {
+            <div class="col-12">
+                <div class="alert alert-info">No accounts found. Add an account to get started.</div>
+            </div>
+        }
+    </div>
+</div>
+
+<!-- ============================= -->
+<!-- ADD / EDIT / DELETE MODALS -->
+<!-- ============================= -->
+
+<!-- Add Account Modal -->
+<div class="modal fade" id="addAccountModal" tabindex="-1" aria-labelledby="addAccountModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form asp-controller="FinancialAccounts" asp-action="Create" method="post">
+                @Html.AntiForgeryToken()
+                <div class="modal-header">
+                    <h5 class="modal-title" id="addAccountModalLabel">Add Account</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="addAccountName" class="form-label">Account Name</label>
+                        <input id="addAccountName" name="Name" class="form-control" required />
+                    </div>
+                    <div class="mb-3">
+                        <label for="addAccountType" class="form-label">Account Type</label>
+                        <select id="addAccountType" name="Type" class="form-select">
+                            <option value="">Select type</option>
+                            <option>Checking</option>
+                            <option>Savings</option>
+                            <option>Credit Card</option>
+                            <option>Other</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="addAccountBalance" class="form-label">Initial Balance</label>
+                        <input id="addAccountBalance" name="Balance" type="number" step="0.01" class="form-control" value="0" />
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success btn-lg">Add Account</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Edit Account Modal -->
+<div class="modal fade" id="editAccountModal" tabindex="-1" aria-labelledby="editAccountModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form asp-controller="FinancialAccounts" asp-action="Edit" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" id="editAccountId" name="Id" value="" />
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editAccountModalLabel">Edit Account</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="editAccountName" class="form-label">Account Name</label>
+                        <input id="editAccountName" name="Name" class="form-control" required />
+                    </div>
+                    <div class="mb-3">
+                        <label for="editAccountType" class="form-label">Account Type</label>
+                        <select id="editAccountType" name="Type" class="form-select">
+                            <option value="">Select type</option>
+                            <option>Checking</option>
+                            <option>Savings</option>
+                            <option>Credit Card</option>
+                            <option>Other</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="editAccountBalance" class="form-label">Balance</label>
+                        <input id="editAccountBalance" name="Balance" type="number" step="0.01" class="form-control" />
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary">Update Account</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Account Modal -->
+<div class="modal fade" id="deleteAccountModal" tabindex="-1" aria-labelledby="deleteAccountModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form asp-controller="FinancialAccounts" asp-action="Delete" method="post">
+                @Html.AntiForgeryToken()
+                <input type="hidden" id="deleteAccountId" name="id" value="" />
+                <div class="modal-header">
+                    <h5 class="modal-title" id="deleteAccountModalLabel">Delete Account</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    Are you sure you want to delete the account "<strong id="deleteAccountName"></strong>"? This action cannot be undone.
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <!-- Note: your controller has [HttpPost, ActionName("Delete")] DeleteConfirmed(int id) -->
+                    <button type="submit" class="btn btn-danger btn-lg">Delete</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Keep your modal JS wiring
+        document.addEventListener("DOMContentLoaded", () => {
+            // Edit buttons
+            document.querySelectorAll(".edit-account").forEach(btn => {
+                btn.addEventListener("click", e => {
+                    e.preventDefault();
+                    const id = btn.dataset.id;
+                    const name = btn.dataset.name;
+                    const type = btn.dataset.type;
+                    const balance = btn.dataset.balance;
+
+                    // fill modal fields
+                    const idEl = document.getElementById("editAccountId");
+                    const nameEl = document.getElementById("editAccountName");
+                    const typeEl = document.getElementById("editAccountType");
+                    const balanceEl = document.getElementById("editAccountBalance");
+
+                    if (idEl) idEl.value = id ?? "";
+                    if (nameEl) nameEl.value = name ?? "";
+                    if (typeEl) typeEl.value = type ?? "";
+                    if (balanceEl) balanceEl.value = balance ?? "0";
+
+                    // open modal
+                    const modalEl = document.getElementById("editAccountModal");
+                    if (modalEl) new bootstrap.Modal(modalEl).show();
+                });
+            });
+
+            // Delete buttons
+            document.querySelectorAll(".delete-account").forEach(btn => {
+                btn.addEventListener("click", e => {
+                    e.preventDefault();
+                    const id = btn.dataset.id;
+                    const name = btn.dataset.name;
+
+                    const idEl = document.getElementById("deleteAccountId");
+                    const nameEl = document.getElementById("deleteAccountName");
+
+                    if (idEl) idEl.value = id ?? "";
+                    if (nameEl) nameEl.textContent = name ?? "";
+
+                    const modalEl = document.getElementById("deleteAccountModal");
+                    if (modalEl) new bootstrap.Modal(modalEl).show();
+                });
+            });
+
+            // Optional: focus first input when opening Add Account modal
+            const addAccountModalEl = document.getElementById("addAccountModal");
+            if (addAccountModalEl) {
+                addAccountModalEl.addEventListener('shown.bs.modal', function () {
+                    const el = document.getElementById("addAccountName");
+                    if (el) el.focus();
+                });
+            }
+        });
+    </script>
+}

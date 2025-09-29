@@ -1,5 +1,4 @@
-
-// File: Models/User.cs
+// Financy/Models/User.cs
 
 using Microsoft.AspNetCore.Identity;
 using System.ComponentModel.DataAnnotations;
@@ -9,19 +8,15 @@ namespace Financy.Models
     public class User : IdentityUser
     {
         [Required]
-        [PersonalData]
         public string FullName { get; set; } = string.Empty;
-
-        [PersonalData]
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
-
-        [PersonalData]
-        public string? ProfileInitials { get; set; }
-
-        [PersonalData]
+        
+        public string ProfileInitials { get; set; } = string.Empty;
         public string? ProfileImageUrl { get; set; }
-
+        
+        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        
         // Navigation properties
-        public List<Transaction> Transactions { get; set; } = new();
+        public List<Transaction> Transactions { get; set; } = new List<Transaction>();
+        public List<Account> Accounts { get; set; } = new List<Account>();
     }
 }

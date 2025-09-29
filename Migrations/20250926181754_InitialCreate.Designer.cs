@@ -12,7 +12,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Financy.Migrations
 {
     [DbContext(typeof(FinancyContext))]
-    [Migration("20250911121803_InitialCreate")]
+    [Migration("20250926181754_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -33,6 +33,9 @@ namespace Financy.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<int>("Id"));
 
+                    b.Property<decimal>("Balance")
+                        .HasColumnType("decimal(18,2)");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasColumnType("text");
@@ -41,7 +44,12 @@ namespace Financy.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
+                    b.Property<string>("UserId")
+                        .HasColumnType("text");
+
                     b.HasKey("Id");
+
+                    b.HasIndex("UserId");
 
                     b.ToTable("Accounts");
                 });
@@ -162,6 +170,7 @@ namespace Financy.Migrations
                         .HasColumnType("text");
 
                     b.Property<string>("ProfileInitials")
+                        .IsRequired()
                         .HasColumnType("text");
 
                     b.Property<string>("SecurityStamp")
@@ -318,6 +327,15 @@ namespace Financy.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
+            modelBuilder.Entity("Financy.Models.Account", b =>
+                {
+                    b.HasOne("Financy.Models.User", "User")
+                        .WithMany("Accounts")
+                        .HasForeignKey("UserId");
+
+                    b.Navigation("User");
+                });
+
             modelBuilder.Entity("Financy.Models.Transaction", b =>
                 {
                     b.HasOne("Financy.Models.Account", "Account")
@@ -408,6 +426,8 @@ namespace Financy.Migrations
 
             modelBuilder.Entity("Financy.Models.User", b =>
                 {
+                    b.Navigation("Accounts");
+
                     b.Navigation("Transactions");
                 });
 #pragma warning restore 612, 618

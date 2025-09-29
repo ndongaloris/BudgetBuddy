@@ -8,22 +8,16 @@
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/BudgetBuddy.styles.css" asp-append-version="true" />
-    
-    <!-- Add Font Awesome for icons -->
+
+    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
-    
-    <!-- CSS -->
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    
-    <!-- Chart.js (kept in head; OK because we initialize after DOMContentLoaded) -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>    
+
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
     <header>
-        <!-- Updated Header Navigation -->
         <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom fixed-top">
-            
             <div class="container-fluid px-4">
                 <!-- Logo -->
                 <a class="navbar-brand d-flex align-items-center" asp-area="" asp-controller="Home" asp-action="Index">
@@ -31,27 +25,30 @@
                     BudgetBuddy
                 </a>
 
-                <!-- Hamburger toggler (only shows on small screens) -->
+                <!-- Hamburger -->
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar"
                         aria-controls="mainNavbar" aria-expanded="false" aria-label="Toggle navigation">
                     <span class="navbar-toggler-icon"></span>
                 </button>
 
-                <!-- Navigation Links -->
+                <!-- Nav Links -->
                 <div class="collapse navbar-collapse" id="mainNavbar">
                     <ul class="navbar-nav mx-auto">
                         <li class="nav-item">
-                            <a class="nav-link active" asp-area="" asp-controller="Home" asp-action="Index">Overview</a>
+                            <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Home" ? "active" : "")"
+                               asp-area="" asp-controller="Home" asp-action="Index">Dashboard</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="/Transactions">Transactions</a>
+                            <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "Transactions" ? "active" : "")"
+                               asp-area="" asp-controller="Transactions" asp-action="Index">Transactions</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" href="/Account">Account</a>
+                            <a class="nav-link @(ViewContext.RouteData.Values["controller"]?.ToString() == "FinancialAccounts" ? "active" : "")"
+                               asp-area="" asp-controller="FinancialAccounts" asp-action="Index">Accounts</a>
                         </li>
                     </ul>
 
-                    <!-- User Navigation Section -->
+                    <!-- User Section -->
                     @using Microsoft.AspNetCore.Identity
                     @inject SignInManager<User> SignInManager
                     @inject UserManager<User> UserManager
@@ -64,7 +61,6 @@
                             <i class="fas fa-cog text-muted"></i>
                             <i class="fas fa-bell text-muted"></i>
 
-                            <!-- Profile dropdown only -->
                             <div class="dropdown">
                                 <button class="btn p-0 border-0" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false">
                                     @if (!string.IsNullOrEmpty(user?.ProfileImageUrl))
@@ -109,7 +105,7 @@
         </main>
     </div>
 
-    <!-- Footer Section -->
+    <!-- Footer -->
     <footer class="bg-white border-top mt-5">
         <div class="container-fluid px-4 py-4">
             <div class="row align-items-center">
@@ -132,10 +128,10 @@
         </div>
     </footer>
 
+    <!-- Scripts -->
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
-    @* <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script> *@
-    <script src="~/js/site.js" asp-append-version="true"></script> 
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>
-

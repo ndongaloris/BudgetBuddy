@@ -1,15 +1,14 @@
-
-// Models/SeedData.cs
+// Financy/Models/SeedData.cs
 
 using Financy.Data;
-using Microsoft.EntityFrameworkCore; // Add this using directive
-using Microsoft.Extensions.DependencyInjection; // You might need this too
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Financy.Models
 {
     public static class SeedData
     {
-        public static void Initialize(IServiceProvider serviceProvider)
+        public static async Task Initialize(IServiceProvider serviceProvider)
         {
             using (var context = new FinancyContext(
                 serviceProvider.GetRequiredService<DbContextOptions<FinancyContext>>()))
@@ -31,13 +30,7 @@ namespace Financy.Models
                     new Category { Name = "Income", Color = "#2ecc71" }
                 );
 
-                // Add default account types
-                context.Accounts.AddRange(
-                    new Account { Name = "Brink Account", Type = "Bank Account" },
-                    new Account { Name = "Credit Card", Type = "Credit Card" }
-                );
-
-                context.SaveChanges();
+                await context.SaveChangesAsync();
             }
         }
     }

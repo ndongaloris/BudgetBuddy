@@ -1,5 +1,5 @@
 
-// // File: Controllers/AccountController.cs
+// // File: Controllers/AccountsController.cs
 
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Identity;
@@ -10,6 +10,8 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using System.Security.Claims;
 using Microsoft.Extensions.Logging;
+using Financy.Data; // ✅ for FinancyContext
+using Microsoft.Extensions.DependencyInjection;
 
 namespace Financy.Controllers
 {
@@ -25,14 +27,13 @@ namespace Financy.Controllers
             _signInManager = signInManager;
             _logger = logger;
         }
+
         [Authorize]
         [HttpGet]
         public IActionResult Index()
         {
             return View();
         }
-
-
 
         // GET: /Account/Register
         [HttpGet]
@@ -60,8 +61,22 @@ namespace Financy.Controllers
 
                 if (result.Succeeded)
                 {
+                    // 🔥 Create default account for local registration
+                    using (var scope = HttpContext.RequestServices.CreateScope())
+                    {
+                        var context = scope.ServiceProvider.GetRequiredService<FinancyContext>();
+                        context.Accounts.Add(new Account
+                        {
+                            Name = "Main Account",
+                            Type = "Checking",
+                            Balance = 0,
+                            UserId = user.Id
+                        });
+                        await context.SaveChangesAsync();
+                    }
+
                     await _signInManager.SignInAsync(user, isPersistent: false);
-                    return RedirectToAction("Dashboard", "Home"); // Changed to Dashboard
+                    return RedirectToAction("Dashboard", "Home");
                 }
 
                 foreach (var error in result.Errors)
@@ -81,7 +96,6 @@ namespace Financy.Controllers
             return View();
         }
 
-
         // POST: /Account/Login
         [HttpPost]
         [ValidateAntiForgeryToken]
@@ -93,7 +107,6 @@ namespace Financy.Controllers
 
                 if (result.Succeeded)
                 {
-                    // Redirect to dashboard instead of index
                     if (!string.IsNullOrEmpty(returnUrl) && Url.IsLocalUrl(returnUrl))
                     {
                         return Redirect(returnUrl);
@@ -106,7 +119,6 @@ namespace Financy.Controllers
 
             return View(model);
         }
-
 
         // POST: /Account/Logout
         [HttpPost]
@@ -122,7 +134,6 @@ namespace Financy.Controllers
         [AllowAnonymous]
         public IActionResult ExternalLogin(string provider, string? returnUrl = null)
         {
-            // Redirect to the external login provider (Google or GitHub)
             var redirectUrl = Url.Action("ExternalLoginCallback", "Account", new { ReturnUrl = returnUrl });
             var properties = _signInManager.ConfigureExternalAuthenticationProperties(provider, redirectUrl);
             return new ChallengeResult(provider, properties);
@@ -145,7 +156,6 @@ namespace Financy.Controllers
                 return RedirectToAction("Login");
             }
 
-            // Try sign in with external provider
             var result = await _signInManager.ExternalLoginSignInAsync(info.LoginProvider, info.ProviderKey, isPersistent: false, bypassTwoFactor: true);
             if (result.Succeeded)
             {
@@ -158,19 +168,12 @@ namespace Financy.Controllers
             }
             else
             {
-                // New user – prepare ExternalLoginConfirmation
-                ViewData["ReturnUrl"] = returnUrl;
-                ViewData["LoginProvider"] = info.LoginProvider;
-
-                // Get claims with null handling
                 var email = info.Principal.FindFirstValue(ClaimTypes.Email) ?? string.Empty;
                 var name = info.Principal.FindFirstValue(ClaimTypes.Name) ?? string.Empty;
                 var picture = info.Principal.FindFirstValue("picture") ?? string.Empty;
 
-                // Handle provider-specific data extraction
                 if (info.LoginProvider == "GitHub")
                 {
-                    // GitHub uses different claim names
                     if (string.IsNullOrEmpty(email))
                     {
                         email = info.Principal.FindFirstValue("user:email") ?? string.Empty;
@@ -185,17 +188,14 @@ namespace Financy.Controllers
                     }
                 }
 
-                // Final fallbacks if values are still empty
                 if (string.IsNullOrEmpty(email))
                 {
-                    // Generate a placeholder email if none is provided
                     var username = info.Principal.FindFirstValue(ClaimTypes.NameIdentifier) ?? "user";
                     email = $"{username}@{info.LoginProvider.ToLower()}.user";
                 }
 
                 if (string.IsNullOrEmpty(name))
                 {
-                    // Use email username part if no name is provided
                     name = email.Split('@')[0];
                 }
 
@@ -237,6 +237,20 @@ namespace Financy.Controllers
                     result = await _userManager.AddLoginAsync(user, info);
                     if (result.Succeeded)
                     {
+                        // 🔥 Create default account for external login user
+                        using (var scope = HttpContext.RequestServices.CreateScope())
+                        {
+                            var context = scope.ServiceProvider.GetRequiredService<FinancyContext>();
+                            context.Accounts.Add(new Account
+                            {
+                                Name = "Main Account",
+                                Type = "Checking",
+                                Balance = 0,
+                                UserId = user.Id
+                            });
+                            await context.SaveChangesAsync();
+                        }
+
                         await _signInManager.SignInAsync(user, isPersistent: false);
                         _logger.LogInformation("User created an account using {Name} provider.", info.LoginProvider);
                         return RedirectToLocal(returnUrl);

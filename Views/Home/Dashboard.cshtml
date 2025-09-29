@@ -1,211 +1,366 @@
-@{
-    ViewData["Title"] = "BudgetBuddy - Dashboard";
-    Layout = "_layout";
+@* File: Views/Home/Dashboard.cshtml *@
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.EntityFrameworkCore
+@inject UserManager<Financy.Models.User> UserManager
+@inject Financy.Data.FinancyContext Db
+
+@functions {
+    public record CategoryDto(string Name, string Percentage, string Color);
+    public record PeriodData(decimal Incomes, decimal Expenses, decimal Balance, double[] ChartData, CategoryDto[] Categories);
 }
+
+@{
+    ViewData["Title"] = "Financy - Dashboard";
+    Layout = "_Layout";
+
+    var user = await UserManager.GetUserAsync(User);
+    var userId = user?.Id;
+
+    // Get filter from query string
+    var filter = Context.Request.Query["filter"].ToString().ToLower();
+    if (string.IsNullOrEmpty(filter)) filter = "thismonth";
+
+    var now = DateTime.Now;
+    DateTime startDate, endDate;
+
+    switch (filter)
+    {
+        case "lastmonth":
+            startDate = new DateTime(now.Year, now.Month, 1).AddMonths(-1);
+            endDate = startDate.AddMonths(1).AddDays(-1);
+            break;
+        case "thisyear":
+            startDate = new DateTime(now.Year, 1, 1);
+            endDate = new DateTime(now.Year, 12, 31);
+            break;
+        case "last12months":
+            startDate = now.AddMonths(-12);
+            endDate = now;
+            break;
+        default: // this month
+            startDate = new DateTime(now.Year, now.Month, 1);
+            endDate = startDate.AddMonths(1).AddDays(-1);
+            break;
+    }
+
+    // Helper to get metrics
+    async Task<(decimal incomes, decimal expenses, decimal balance, List<(string Name, decimal Amount)> categories)> GetMetrics(DateTime start, DateTime end)
+    {
+        var incomes = await Db.Transactions
+            .Where(t => t.UserId == userId && t.IsIncome && t.Date >= start && t.Date <= end)
+            .SumAsync(t => (decimal?)t.Amount) ?? 0;
+
+        var expenses = await Db.Transactions
+            .Where(t => t.UserId == userId && !t.IsIncome && t.Date >= start && t.Date <= end)
+            .SumAsync(t => (decimal?)t.Amount) ?? 0;
+
+        var balance = incomes - expenses;
+
+        var categories = await Db.Transactions
+            .Where(t => t.UserId == userId && !t.IsIncome && t.Date >= start && t.Date <= end)
+            .GroupBy(t => t.Category.Name)
+            .Select(g => new { Name = g.Key, Amount = g.Sum(x => x.Amount) })
+            .OrderByDescending(x => x.Amount)
+            .ToListAsync();
+
+        return (incomes, expenses, balance, categories.Select(c => (c.Name ?? "Other", c.Amount)).ToList());
+    }
+
+    // Convert metrics to PeriodData
+    PeriodData BuildPeriodData((decimal incomes, decimal expenses, decimal balance, List<(string Name, decimal Amount)> categories) metrics)
+    {
+        var palette = new[] { "#6366f1", "#ef4444", "#06b6d4", "#10b981", "#8b5cf6", "#f59e0b" };
+
+        var totalExpenses = metrics.expenses;
+
+        var top6 = metrics.categories.Take(6).ToList();
+
+        var chartData = top6.Select(c => totalExpenses > 0 ? Math.Round((double)(c.Amount / totalExpenses * 100M), 2) : 0.0).ToArray();
+
+        var categoriesList = top6.Select((c, i) =>
+            new CategoryDto(
+                c.Name ?? "Other",
+                totalExpenses > 0 ? Math.Round((double)(c.Amount / totalExpenses * 100M), 2).ToString("0.##") + "%" : "0%",
+                palette[Math.Min(i, palette.Length - 1)]
+            )
+        ).ToArray();
+
+        return new PeriodData(metrics.incomes, metrics.expenses, metrics.balance, chartData, categoriesList);
+    }
+
+    var metrics = userId != null ? await GetMetrics(startDate, endDate) : (0M, 0M, 0M, new List<(string, decimal)>());
+    var thisMonthData = BuildPeriodData(metrics);
+
+    // Active filter helper
+    string ActiveClass(string f) => f == filter ? "time-filter active" : "time-filter";
+
+    // Last transactions (filtered by selected range)
+    var lastTransactions = userId != null
+        ? await Db.Transactions
+            .Include(t => t.Category)
+            .Include(t => t.Account)
+            .Where(t => t.UserId == userId && t.Date >= startDate && t.Date <= endDate)
+            .OrderByDescending(t => t.Date)
+            .Take(5)
+            .ToListAsync()
+        : new List<Financy.Models.Transaction>();
+
+    // Helpers for UI
+    string GetInitials(string description)
+    {
+        if (string.IsNullOrWhiteSpace(description)) return "";
+        var words = description.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (words.Length == 1) return words[0].Substring(0, 1).ToUpper();
+        return (words[0][0].ToString() + words[1][0].ToString()).ToUpper();
+    }
+
+    string GetColor(string description)
+    {
+        var palette = new[] { "#6366f1", "#ef4444", "#06b6d4", "#10b981", "#8b5cf6", "#f59e0b", "#f43f5e", "#14b8a6" };
+        if (string.IsNullOrEmpty(description)) return palette[0];
+        int hash = description.Aggregate(0, (acc, c) => acc + c);
+        return palette[hash % palette.Length];
+    }
+
+    string balanceClass = thisMonthData.Balance < 0 ? "text-balance-negative" : "text-balance-positive";
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>@ViewData["Title"]</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            @* background-color: rgba(181, 203, 222, 0.5); *@
-            background-color: #F5F5F7
-            @* background-color: #e3f2fd; *@
-        }
-
-        
-
-
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background-color: #f8f9fa; }
+        .greeting-section { background: white; border-radius: 12px; padding: 1.5rem; margin-bottom: 1.5rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .metric-card { background: white; border-radius: 12px; padding: 1.5rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1); height: 100%; }
+        .metric-title { font-size: 0.875rem; color: #6c757d; margin-bottom: 0.5rem; font-weight: 500; }
+        .metric-value { font-size: 1.75rem; font-weight: 700; margin-bottom: 0.5rem; }
+        .text-balance-negative { color: #cc7000; } /* dark orange */
+        .text-balance-positive { color: #007bff; } /* blue */
+        .action-button { background: white; border-radius: 12px; padding: 1.25rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1); border: none; width: 100%; text-align: left; display: flex; align-items: center; gap: 1rem; margin-bottom: 1rem; color: inherit; text-decoration: none; }
+        .action-button:hover { transform: translateY(-2px); box-shadow: 0 4px 8px rgba(0,0,0,0.15); }
+        .action-icon { width: 40px; height: 40px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 1.25rem; }
+        .action-icon.income { background-color: #e8f5e8; color: #28a745; }
+        .action-icon.expense { background-color: #fdeaea; color: #dc3545; }
+        .chart-container { background: white; border-radius: 12px; padding: 1.5rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1); min-height: 500px; }
+        .transactions-container { background: white; border-radius: 12px; padding: 1.5rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .time-filters a { margin-right: 8px; padding: 6px 12px; border-radius: 6px; text-decoration: none; color: #333; background: transparent;}
+        .time-filters a.active { background: #f1f1f1; color: #000; }
+        .time-filters a:hover { background: #f1f1f1; }
     </style>
+</head>
 <body>
 
-    <!-- NAV has been removed intentionally (coming from Layout/_Layout.cshtml). -->
-    <!-- Main Content -->
-    <div class="container-fluid px-4 py-3">
-        <!-- Greeting Section -->
-        <div class="greeting-section">
-            <div class="d-flex justify-content-between align-items-center">
-                <h1 class="h3 mb-0 fw-bold" id="userGreeting">Hello, User!</h1>
-                <div class="time-filters">
-                    <button class="time-filter active">This month</button>
-                    <button class="time-filter">Last month</button>
-                    <button class="time-filter">This year</button>
-                    <button class="time-filter">Last 12 months</button>
-                </div>
-            </div>
-        </div>
-
-        <!-- New layout: Pie chart on left, everything else on right -->
-        <div class="row g-4">
-            <!-- Left Column: Pie Chart -->
-            <div class="col-lg-4">
-                <div class="chart-container">
-                    <div class="section-title">Expenses by category</div>
-                    <div class="section-subtitle">Check your expenses by category</div>
-
-                    <div style="position: relative; height: 280px; margin-bottom: 1.5rem;">
-                        <canvas id="expensesChart"></canvas>
-                    </div>
-
-                    <!-- Category breakdown list within the same card -->
-                    <div class="category-item">
-                        <div class="d-flex align-items-center category-info">
-                            <div class="category-color" style="background-color: #6366f1;"></div>
-                            <span class="category-name ms-2">House</span>
-                        </div>
-                        <span class="category-percentage">41.35%</span>
-                    </div>
-
-                    <div class="category-item">
-                        <div class="d-flex align-items-center category-info">
-                            <div class="category-color" style="background-color: #ef4444;"></div>
-                            <span class="category-name ms-2">Savings</span>
-                        </div>
-                        <span class="category-percentage">21.51%</span>
-                    </div>
-
-                    <div class="category-item">
-                        <div class="d-flex align-items-center category-info">
-                            <div class="category-color" style="background-color: #06b6d4;"></div>
-                            <span class="category-name ms-2">Transportation</span>
-                        </div>
-                        <span class="category-percentage">15.47%</span>
-                    </div>
-
-                    <div class="category-item">
-                        <div class="d-flex align-items-center category-info">
-                            <div class="category-color" style="background-color: #10b981;"></div>
-                            <span class="category-name ms-2">Groceries</span>
-                        </div>
-                        <span class="category-percentage">9.27%</span>
-                    </div>
-
-                    <div class="category-item">
-                        <div class="d-flex align-items-center category-info">
-                            <div class="category-color" style="background-color: #8b5cf6;"></div>
-                            <span class="category-name ms-2">Shopping</span>
-                        </div>
-                        <span class="category-percentage">7.35%</span>
-                    </div>
-
-                    <div class="category-item">
-                        <div class="d-flex align-items-center category-info">
-                            <div class="category-color" style="background-color: #f59e0b;"></div>
-                            <span class="category-name ms-2">Entertainment</span>
-                        </div>
-                        <span class="category-percentage">5.05%</span>
-                    </div>
-                </div>
-            </div>
-
-            <!-- Right Column: Metrics, Actions, and Transactions -->
-            <div class="col-lg-8">
-                <!-- Metrics Row -->
-                <div class="row g-3 mb-4">
-                    <div class="col-md-4">
-                        <div class="metric-card">
-                            <div class="metric-title">Balance</div>
-                            <div class="metric-value text-success">$5,502.45</div>
-                            <div class="metric-change positive">+ 12.5%</div>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="metric-card">
-                            <div class="metric-title">Incomes</div>
-                            <div class="metric-value">$9,450.00</div>
-                            <div class="metric-change positive">+ 27%</div>
-                        </div>
-                    </div>
-                    <div class="col-md-4">
-                        <div class="metric-card">
-                            <div class="metric-title">Expenses</div>
-                            <div class="metric-value">$3,945.55</div>
-                            <div class="metric-change negative">- 15%</div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Action Buttons Row -->
-                <div class="row g-3 mb-4">
-                    <div class="col-md-6">
-                        <a href="add-income.html" class="action-button">
-                            <div class="action-icon income">
-                                <i class="fas fa-plus"></i>
-                            </div>
-                            <div>
-                                <div class="fw-semibold">Add Income</div>
-                                <div class="text-muted small">Create an income manually</div>
-                            </div>
-                        </a>
-                    </div>
-                    <div class="col-md-6">
-                        <a href="add-expense.html" class="action-button">
-                            <div class="action-icon expense">
-                                <i class="fas fa-plus"></i>
-                            </div>
-                            <div>
-                                <div class="fw-semibold">Add expense</div>
-                                <div class="text-muted small">Create an expense manually</div>
-                            </div>
-                        </a>
-                    </div>
-                </div>
-
-                <!-- Transactions List -->
-                <div class="transactions-container">
-                    <div class="section-title">Last transactions</div>
-                    <div class="section-subtitle">Check your last transactions</div>
-
-                    <div class="table-responsive">
-                        <table class="table table-borderless">
-                            <thead>
-                                <tr class="text-muted small">
-                                    <th>Description</th>
-                                    <th>Category</th>
-                                    <th>Date</th>
-                                    <th class="text-end">Amount</th>
-                                    <th></th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                <tr>
-                                    <td>
-                                        <div class="d-flex align-items-center">
-                                            <div class="transaction-icon" style="background-color: #fff3cd; color: #856404;">OR</div>
-                                            <span class="fw-medium">Orlando Rodriguez</span>
-                                        </div>
-                                    </td>
-                                    <td><span class="text-muted">Bank account</span></td>
-                                    <td><span class="text-muted">2024/04/01</span></td>
-                                    <td class="text-end"><span class="text-success fw-semibold">+$750.00</span></td>
-                                    <td><i class="fas fa-ellipsis-v text-muted"></i></td>
-                                </tr>
-
-                                <tr>
-                                    <td>
-                                        <div class="d-flex align-items-center">
-                                            <div class="transaction-icon" style="background-color: #d1ecf1; color:#0c5460;">N</div>
-                                            <span class="fw-medium">Netflix</span>
-                                        </div>
-                                    </td>
-                                    <td><span class="text-muted">Credit card</span></td>
-                                    <td><span class="text-muted">2024/03/29</span></td>
-                                    <td class="text-end"><span class="fw-semibold">$9.90</span></td>
-                                    <td><i class="fas fa-ellipsis-v text-muted"></i></td>
-                                </tr>
-
-                                <!-- other rows... -->
-                            </tbody>
-                        </table>
-                    </div>
-                </div>
+<div class="container-fluid px-4 py-3">
+    <!-- Greeting -->
+    <div class="greeting-section">
+        <div class="d-flex justify-content-between align-items-center">
+            <h1 class="h3 mb-0 fw-bold">Hello, @user?.FullName!</h1>
+            <div class="time-filters">
+                <a href="@Url.Action("Dashboard", "Home", new { filter = "thismonth" })" class="@ActiveClass("thismonth")">This month</a>
+                <a href="@Url.Action("Dashboard", "Home", new { filter = "lastmonth" })" class="@ActiveClass("lastmonth")">Last month</a>
+                <a href="@Url.Action("Dashboard", "Home", new { filter = "thisyear" })" class="@ActiveClass("thisyear")">This year</a>
+                <a href="@Url.Action("Dashboard", "Home", new { filter = "last12months" })" class="@ActiveClass("last12months")">Last 12 months</a>
             </div>
         </div>
     </div>
 
+    <div class="row g-4">
+        <!-- Left: Chart -->
+        <div class="col-lg-4">
+            <div class="chart-container">
+                <div class="section-title">Expenses by category</div>
+                <div class="section-subtitle">Check your expenses by category</div>
+                <div style="height: 280px;">
+                    <canvas id="expensesChart"></canvas>
+                </div>
+                @foreach (var cat in thisMonthData.Categories)
+                {
+                    <div class="category-item d-flex justify-content-between">
+                        <div class="category-info d-flex align-items-center gap-2">
+                            <div class="category-color" style="width:12px;height:12px;border-radius:50%;background:@cat.Color;"></div>
+                            <span class="category-name">@cat.Name</span>
+                        </div>
+                        <span class="category-percentage">@cat.Percentage</span>
+                    </div>
+                }
+            </div>
+        </div>
 
-    <!-- scripts -->
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+        <!-- Right: Metrics + Transactions -->
+        <div class="col-lg-8">
+            <div class="row g-3 mb-4">
+                <div class="col-md-4">
+                    <div class="metric-card">
+                        <div class="metric-title">Balance</div>
+                        <div class="metric-value @balanceClass">
+                            @(thisMonthData.Balance < 0 
+                                ? "-" + Math.Abs(thisMonthData.Balance).ToString("C") 
+                                : thisMonthData.Balance.ToString("C"))
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="metric-card">
+                        <div class="metric-title">Incomes</div>
+                        <div class="metric-value text-success">@thisMonthData.Incomes.ToString("C")</div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="metric-card">
+                        <div class="metric-title">Expenses</div>
+                        <div class="metric-value text-danger">@thisMonthData.Expenses.ToString("C")</div>
+                    </div>
+                </div>
+            </div>
 
-    <script>
-        
-    </script>
+            <!-- Actions -->
+            <div class="row g-3 mb-4">
+                <div class="col-md-6">
+                    <a asp-controller="Transactions" asp-action="AddIncome" class="action-button">
+                        <div class="action-icon income"><i class="fas fa-plus"></i></div>
+                        <div><div class="fw-semibold">Add Income</div><div class="text-muted small">Create an income manually</div></div>
+                    </a>
+                </div>
+                <div class="col-md-6">
+                    <a asp-controller="Transactions" asp-action="AddExpense" class="action-button">
+                        <div class="action-icon expense"><i class="fas fa-plus"></i></div>
+                        <div><div class="fw-semibold">Add Expense</div><div class="text-muted small">Create an expense manually</div></div>
+                    </a>
+                </div>
+            </div>
+
+            <!-- Last Transactions -->
+            <div class="transactions-container">
+                <div class="section-title">Last transactions</div>
+                <div class="section-subtitle">Check your last transactions</div>
+                <div class="table-responsive">
+                    <table class="table table-borderless">
+                        <thead>
+                            <tr class="text-muted small">
+                                <th>Description</th>
+                                <th>Category</th>
+                                <th>Date</th>
+                                <th class="text-end">Amount</th>
+                                <th class="text-center">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (!lastTransactions.Any())
+                            {
+                                <tr><td colspan="5" class="text-muted">No recent transactions</td></tr>
+                            }
+                            else
+                            {
+                                foreach (var tx in lastTransactions)
+                                {
+                                    <tr>
+                                        <td class="d-flex align-items-center gap-2">
+                                            <div style="width:32px;height:32px;border-radius:50%;background:@GetColor(tx.Description);color:white;display:flex;align-items:center;justify-content:center;font-weight:bold;font-size:0.875rem;">
+                                                @GetInitials(tx.Description)
+                                            </div>
+                                            <span>@tx.Description</span>
+                                        </td>
+                                        <td>@(tx.Category?.Name ?? "")</td>
+                                        <td>@tx.Date.ToShortDateString()</td>
+                                        <td class="text-end">
+                                            <span class="@(tx.IsIncome ? "text-success" : "text-danger") fw-semibold">
+                                                @(tx.IsIncome ? "+" : "-")@tx.Amount.ToString("C")
+                                            </span>
+                                        </td>
+                                        <td class="text-center">
+                                            @if (tx.IsIncome)
+                                            {
+                                                <a asp-controller="Transactions" asp-action="EditIncome" asp-route-id="@tx.Id" class="text-warning me-2" title="Edit Income">
+                                                    <i class="fas fa-edit"></i>
+                                                </a>
+                                                <button type="button" class="btn btn-link text-danger p-0" data-bs-toggle="modal" data-bs-target="#deleteModal@tx.Id" title="Delete Income">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                                <div class="modal fade" id="deleteModal@tx.Id" tabindex="-1" aria-labelledby="deleteModalLabel@tx.Id" aria-hidden="true">
+                                                    <div class="modal-dialog modal-dialog-centered">
+                                                        <div class="modal-content">
+                                                            <div class="modal-header">
+                                                                <h5 class="modal-title" id="deleteModalLabel@tx.Id">Confirm Delete</h5>
+                                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                            </div>
+                                                            <div class="modal-body">
+                                                                Are you sure you want to delete the income "<strong>@tx.Description</strong>"? This action cannot be undone.
+                                                            </div>
+                                                            <div class="modal-footer">
+                                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                                                <form asp-controller="Transactions" asp-action="DeleteIncomeConfirmed" method="post" class="d-inline">
+                                                                    <input type="hidden" name="id" value="@tx.Id" />
+                                                                    <button type="submit" class="btn btn-danger">Delete</button>
+                                                                </form>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            }
+                                            else
+                                            {
+                                                <a asp-controller="Transactions" asp-action="EditExpense" asp-route-id="@tx.Id" class="text-warning me-2" title="Edit Expense">
+                                                    <i class="fas fa-edit"></i>
+                                                </a>
+                                                <button type="button" class="btn btn-link text-danger p-0" data-bs-toggle="modal" data-bs-target="#deleteExpenseModal@tx.Id" title="Delete Expense">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                                <div class="modal fade" id="deleteExpenseModal@tx.Id" tabindex="-1" aria-labelledby="deleteExpenseModalLabel@tx.Id" aria-hidden="true">
+                                                    <div class="modal-dialog modal-dialog-centered">
+                                                        <div class="modal-content">
+                                                            <div class="modal-header">
+                                                                <h5 class="modal-title" id="deleteExpenseModalLabel@tx.Id">Confirm Delete</h5>
+                                                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                                            </div>
+                                                            <div class="modal-body">
+                                                                Are you sure you want to delete the expense "<strong>@tx.Description</strong>"? This action cannot be undone.
+                                                            </div>
+                                                            <div class="modal-footer">
+                                                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                                                                <form asp-controller="Transactions" asp-action="DeleteExpenseConfirmed" method="post" class="d-inline">
+                                                                    <input type="hidden" name="id" value="@tx.Id" />
+                                                                    <button type="submit" class="btn btn-danger">Delete</button>
+                                                                </form>
+                                                            </div>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    const ctx = document.getElementById('expensesChart').getContext('2d');
+    const expensesChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: @Html.Raw(Newtonsoft.Json.JsonConvert.SerializeObject(thisMonthData.Categories.Select(c => c.Name))),
+            datasets: [{
+                data: @Html.Raw(Newtonsoft.Json.JsonConvert.SerializeObject(thisMonthData.ChartData)),
+                backgroundColor: @Html.Raw(Newtonsoft.Json.JsonConvert.SerializeObject(thisMonthData.Categories.Select(c => c.Color))),
+                borderWidth: 0,
+                cutout: '60%'
+            }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } } }
+    });
+</script>
+
 </body>
 </html>

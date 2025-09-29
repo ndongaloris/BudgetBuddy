@@ -1,126 +1,184 @@
-@{
-    ViewData["Title"] = "BudgetBuddy - Add New Income";
-    Layout = "_Layout";
+
+@* File: Views/Transactions/addIncome.cshtml *@
+
+@model Financy.Models.ViewModels.AddIncomeViewModel
+
+
+<style>
+    body {
+        background-color: #f8f9fa !important;
+    }
+
+    .container-fluid {
+        background-color: transparent !important;
+    }
+
+    /* Custom Add Income Button */
+    .btn-income {
+        background-color: #28a745; /* green */
+        color: white;
+        font-weight: 600;
+        border-radius: 8px;
+        padding: 0.5rem 1.5rem;
+        transition: background-color 0.3s ease, transform 0.2s ease;
+    }
+
+    .btn-income:hover {
+        background-color: #218838; /* darker green */
+        transform: translateY(-2px);
+    }
+
+    .btn-income i {
+        color: white;
+    }
+    
+    .fw-bold{
+        color: #000;
+    }
+
+    .page-header {
+    background: white;
+    border-radius: 12px;
+    padding: 1.5rem 2rem;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 
+                0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    margin-bottom: 2rem;
 }
 
-<!-- Main Content -->
-    <div class="container-fluid px-4 py-4">
-        <!-- Page Header -->
-        <div class="page-header">
-            <a href="dashboard.html" class="back-link">
-                <i class="fas fa-arrow-left"></i>
-                Back to Dashboard
-            </a>
-            <h1 class="h3 mb-0 fw-bold">Add New Income</h1>
-            <p class="text-muted mb-0">Create a new income entry to track your earnings</p>
-        </div>
+.back-link {
+    color: #6c757d;
+    text-decoration: none;
+    font-weight: 500;
+    margin-bottom: 1rem;
+    display: inline-block;
+    transition: color 0.3s ease;
+}
 
-        <!-- Form Container -->
-        <div class="form-container">
-            <div class="form-title">Income Details</div>
-            <div class="form-subtitle">Fill in the information below to add a new income entry</div>
-            
-            <form id="incomeForm">
-                <div class="row">
-                    <div class="col-md-6">
-                        <label class="form-label">Description <span class="required">*</span></label>
-                        <input type="text" class="form-control" id="description" placeholder="e.g., Salary, Freelance work, Investment" required>
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label">Category <span class="required">*</span></label>
-                        <select class="form-select" id="category" required>
-                            <option value="">Select a category</option>
-                            <option value="salary">Salary Income</option>
-                            <option value="freelance">Freelance Work</option>
-                            <option value="investment">Investment Returns</option>
-                            <option value="business">Business Income</option>
-                            <option value="rental">Rental Income</option>
-                            <option value="bonus">Bonus</option>
-                            <option value="gift">Gift/Donation</option>
-                            <option value="other">Other</option>
-                        </select>
-                    </div>
-                </div>
+.back-link:hover {
+    color: #495057;
+    text-decoration: none;
+}
 
-                <div class="row">
-                    <div class="col-md-6">
-                        <label class="form-label">Amount <span class="required">*</span></label>
-                        <div class="input-group">
-                            <span class="input-group-text">$</span>
-                            <input type="number" class="form-control" id="amount" placeholder="0.00" step="0.01" min="0" required>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label">Date <span class="required">*</span></label>
-                        <input type="date" class="form-control" id="date" required>
-                    </div>
-                </div>
+</style>
 
-                <div class="row">
-                    <div class="col-md-6">
-                        <label class="form-label">Account</label>
-                        <select class="form-select" id="account">
-                            <option value="">Select account</option>
-                            <option value="checking">Checking Account</option>
-                            <option value="savings">Savings Account</option>
-                            <option value="credit">Credit Card</option>
-                            <option value="cash">Cash</option>
-                            <option value="paypal">PayPal</option>
-                            <option value="other">Other</option>
-                        </select>
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label">Payment Method</label>
-                        <select class="form-select" id="paymentMethod">
-                            <option value="">Select payment method</option>
-                            <option value="bank-transfer">Bank Transfer</option>
-                            <option value="cash">Cash</option>
-                            <option value="check">Check</option>
-                            <option value="paypal">PayPal</option>
-                            <option value="crypto">Cryptocurrency</option>
-                            <option value="other">Other</option>
-                        </select>
-                    </div>
-                </div>
+@{
+    ViewData["Title"] = "BudgetBuddy - Income";
+    Layout = "_Layout";
+    bool isEdit = ViewBag.IsEdit ?? false;
+    string formAction = isEdit ? "EditIncome" : "AddIncome";
+    int transactionId = Model.Id;
+    string buttonText = isEdit ? "Update Income" : "Add Income";
+}
 
-                <div class="mb-3">
-                    <label class="form-label">Notes</label>
-                    <textarea class="form-control" id="notes" rows="3" placeholder="Add any additional notes or details about this income..."></textarea>
-                </div>
-
-                <div class="form-check mb-4">
-                    <input class="form-check-input" type="checkbox" id="recurring">
-                    <label class="form-check-label" for="recurring">
-                        This is a recurring income
-                    </label>
-                </div>
-
-                <div id="recurringOptions" class="row mb-4" style="display: none;">
-                    <div class="col-md-6">
-                        <label class="form-label">Frequency</label>
-                        <select class="form-select" id="frequency">
-                            <option value="weekly">Weekly</option>
-                            <option value="biweekly">Bi-weekly</option>
-                            <option value="monthly" selected>Monthly</option>
-                            <option value="quarterly">Quarterly</option>
-                            <option value="yearly">Yearly</option>
-                        </select>
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label">End Date (Optional)</label>
-                        <input type="date" class="form-control" id="endDate">
-                    </div>
-                </div>
-
-                <div class="d-flex gap-3 justify-content-end">
-                    <button type="button" class="btn btn-secondary" onclick="window.location.href='dashboard.html'">
-                        Cancel
-                    </button>
-                    <button type="submit" class="btn btn-primary">
-                        <i class="fas fa-plus me-2"></i>
-                        Add Income
-                    </button>
-                </div>
-            </form>
-        </div>
+<div class="container-fluid px-4 py-4">
+    <div class="page-header">
+        <a href="@Url.Action("Dashboard", "Home")" class="back-link">
+            <i class="fas fa-arrow-left"></i> Back to Dashboard
+        </a>
+        <h1 class="h3 mb-0 fw-bold">@buttonText</h1>
+        <p class="text-muted mb-0">@((isEdit ? "Update" : "Create") + " an income entry to track your earnings")</p>
     </div>
+
+    @if (TempData["SuccessMessage"] != null)
+    {
+        <div class="alert alert-success alert-dismissible fade show" role="alert">
+            <i class="fas fa-check-circle me-2"></i>
+            @TempData["SuccessMessage"]
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    }
+
+    <div class="form-container">
+        <form asp-action="@formAction" asp-route-id="@transactionId" method="post" id="incomeForm">
+            @Html.AntiForgeryToken()
+            <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
+            <!-- Description -->
+            <div class="mb-3">
+                <label asp-for="Description" class="form-label"></label>
+                <input asp-for="Description" class="form-control" />
+                <span asp-validation-for="Description" class="text-danger small"></span>
+            </div>
+
+            <!-- Amount -->
+            <div class="mb-3">
+                <label asp-for="Amount" class="form-label"></label>
+                <div class="input-group">
+                    <span class="input-group-text">$</span>
+                    <input asp-for="Amount" class="form-control" step="0.01" />
+                </div>
+                <span asp-validation-for="Amount" class="text-danger small"></span>
+            </div>
+
+            <!-- Date -->
+            <div class="mb-3">
+                <label asp-for="Date" class="form-label"></label>
+                <input asp-for="Date" type="datetime-local" class="form-control"
+                       value="@Model.Date.ToString("yyyy-MM-ddTHH:mm")" />
+                <span asp-validation-for="Date" class="text-danger small"></span>
+            </div>
+
+            <!-- Category -->
+            <div class="mb-3">
+                <label asp-for="CategoryId" class="form-label">Category</label>
+                <select asp-for="CategoryId" class="form-select">
+                    <option value="">Select category</option>
+                    @foreach (var c in Model.Categories)
+                    {
+                        <option value="@c.Id" selected="@(Model.CategoryId == c.Id)">@c.Name</option>
+                    }
+                </select>
+                <span asp-validation-for="CategoryId" class="text-danger small"></span>
+            </div>
+
+            <!-- Account -->
+            <div class="mb-3">
+                <label asp-for="AccountId" class="form-label">Account</label>
+                <select asp-for="AccountId" class="form-select">
+                    <option value="">Select account</option>
+                    @foreach (var acc in Model.Accounts)
+                    {
+                        <option value="@acc.Id" selected="@(Model.AccountId == acc.Id)">@acc.Name</option>
+                    }
+                </select>
+                <span asp-validation-for="AccountId" class="text-danger small"></span>
+                <div class="form-text mt-1">
+                    No accounts yet? 
+                    <a asp-controller="FinancialAccounts" asp-action="Create" class="btn btn-dark btn-sm ms-2 px-3">
+                        <i class="fas fa-plus me-1"></i>New Account
+                    </a>
+                </div>
+            </div>
+
+            <!-- Notes -->
+            <!-- <div class="mb-3">
+                <label asp-for="Notes" class="form-label"></label>
+                <textarea asp-for="Notes" class="form-control" rows="3"></textarea>
+                <span asp-validation-for="Notes" class="text-danger small"></span>
+            </div> -->
+
+            <div class="d-flex gap-3 justify-content-end mt-3">
+                <a asp-action="Index" class="btn btn-secondary">Cancel</a>
+                <button type="submit" class="btn btn-success">
+                    <i class="fas @(isEdit ? "fa-edit" : "fa-plus") me-2"></i>
+                    @buttonText
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    <script>
+        document.getElementById('incomeForm').addEventListener('submit', function (e) {
+            var form = e.target;
+            if (!form.checkValidity()) {
+                e.preventDefault();
+                e.stopPropagation();
+            }
+            form.classList.add('was-validated');
+        });
+    </script>
+}
