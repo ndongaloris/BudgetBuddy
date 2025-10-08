@@ -9,101 +9,101 @@ build_property.EnforceExtendedAnalyzerRules =
 build_property._SupportedPlatformList = Linux,macOS,Windows
 build_property.RootNamespace = BudgetBuddy
 build_property.RootNamespace = BudgetBuddy
-build_property.ProjectDir = C:\Users\NEC\Desktop\BudgetBuddy\
+build_property.ProjectDir = C:\Users\ndong\OneDrive\jared ndonga\BudgetBuddy-1\
 build_property.EnableComHosting = 
 build_property.EnableGeneratedComInterfaceComImportInterop = 
 build_property.RazorLangVersion = 8.0
 build_property.SupportLocalizedComponentNames = 
 build_property.GenerateRazorMetadataSourceChecksumAttributes = 
-build_property.MSBuildProjectDirectory = C:\Users\NEC\Desktop\BudgetBuddy
+build_property.MSBuildProjectDirectory = C:\Users\ndong\OneDrive\jared ndonga\BudgetBuddy-1
 build_property._RazorSourceGeneratorDebug = 
 build_property.EffectiveAnalysisLevelStyle = 8.0
 build_property.EnableCodeStyleSeverity = 
 
-[C:/Users/NEC/Desktop/BudgetBuddy/App.razor]
+[C:/Users/ndong/OneDrive/jared ndonga/BudgetBuddy-1/App.razor]
 build_metadata.AdditionalFiles.TargetPath = QXBwLnJhem9y
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/NEC/Desktop/BudgetBuddy/Pages/Accounts/Create.razor]
+[C:/Users/ndong/OneDrive/jared ndonga/BudgetBuddy-1/Pages/Accounts/Create.razor]
 build_metadata.AdditionalFiles.TargetPath = UGFnZXNcQWNjb3VudHNcQ3JlYXRlLnJhem9y
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/NEC/Desktop/BudgetBuddy/Pages/Accounts/Details.razor]
+[C:/Users/ndong/OneDrive/jared ndonga/BudgetBuddy-1/Pages/Accounts/Details.razor]
 build_metadata.AdditionalFiles.TargetPath = UGFnZXNcQWNjb3VudHNcRGV0YWlscy5yYXpvcg==
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/NEC/Desktop/BudgetBuddy/Pages/Accounts/Edit.razor]
+[C:/Users/ndong/OneDrive/jared ndonga/BudgetBuddy-1/Pages/Accounts/Edit.razor]
 build_metadata.AdditionalFiles.TargetPath = UGFnZXNcQWNjb3VudHNcRWRpdC5yYXpvcg==
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/NEC/Desktop/BudgetBuddy/Pages/Accounts/Index.razor]
+[C:/Users/ndong/OneDrive/jared ndonga/BudgetBuddy-1/Pages/Accounts/Index.razor]
 build_metadata.AdditionalFiles.TargetPath = UGFnZXNcQWNjb3VudHNcSW5kZXgucmF6b3I=
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/NEC/Desktop/BudgetBuddy/Pages/Counter.razor]
+[C:/Users/ndong/OneDrive/jared ndonga/BudgetBuddy-1/Pages/Counter.razor]
 build_metadata.AdditionalFiles.TargetPath = UGFnZXNcQ291bnRlci5yYXpvcg==
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/NEC/Desktop/BudgetBuddy/Pages/Dashboard.razor]
+[C:/Users/ndong/OneDrive/jared ndonga/BudgetBuddy-1/Pages/Dashboard.razor]
 build_metadata.AdditionalFiles.TargetPath = UGFnZXNcRGFzaGJvYXJkLnJhem9y
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/NEC/Desktop/BudgetBuddy/Pages/DatabaseTest.razor]
+[C:/Users/ndong/OneDrive/jared ndonga/BudgetBuddy-1/Pages/DatabaseTest.razor]
 build_metadata.AdditionalFiles.TargetPath = UGFnZXNcRGF0YWJhc2VUZXN0LnJhem9y
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/NEC/Desktop/BudgetBuddy/Pages/Transactions/AddExpense.razor]
+[C:/Users/ndong/OneDrive/jared ndonga/BudgetBuddy-1/Pages/Transactions/AddExpense.razor]
 build_metadata.AdditionalFiles.TargetPath = UGFnZXNcVHJhbnNhY3Rpb25zXEFkZEV4cGVuc2UucmF6b3I=
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/NEC/Desktop/BudgetBuddy/Pages/Transactions/AddIncome.razor]
+[C:/Users/ndong/OneDrive/jared ndonga/BudgetBuddy-1/Pages/Transactions/AddIncome.razor]
 build_metadata.AdditionalFiles.TargetPath = UGFnZXNcVHJhbnNhY3Rpb25zXEFkZEluY29tZS5yYXpvcg==
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/NEC/Desktop/BudgetBuddy/Pages/Transactions/Index.razor]
+[C:/Users/ndong/OneDrive/jared ndonga/BudgetBuddy-1/Pages/Transactions/Index.razor]
 build_metadata.AdditionalFiles.TargetPath = UGFnZXNcVHJhbnNhY3Rpb25zXEluZGV4LnJhem9y
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/NEC/Desktop/BudgetBuddy/Pages/Weather.razor]
+[C:/Users/ndong/OneDrive/jared ndonga/BudgetBuddy-1/Pages/Weather.razor]
 build_metadata.AdditionalFiles.TargetPath = UGFnZXNcV2VhdGhlci5yYXpvcg==
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/NEC/Desktop/BudgetBuddy/Shared/MainLayout.razor]
+[C:/Users/ndong/OneDrive/jared ndonga/BudgetBuddy-1/Shared/MainLayout.razor]
 build_metadata.AdditionalFiles.TargetPath = U2hhcmVkXE1haW5MYXlvdXQucmF6b3I=
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/NEC/Desktop/BudgetBuddy/Shared/NavMenu.razor]
+[C:/Users/ndong/OneDrive/jared ndonga/BudgetBuddy-1/Shared/NavMenu.razor]
 build_metadata.AdditionalFiles.TargetPath = U2hhcmVkXE5hdk1lbnUucmF6b3I=
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/NEC/Desktop/BudgetBuddy/Shared/RedirectToLogin.razor]
+[C:/Users/ndong/OneDrive/jared ndonga/BudgetBuddy-1/Shared/RedirectToLogin.razor]
 build_metadata.AdditionalFiles.TargetPath = U2hhcmVkXFJlZGlyZWN0VG9Mb2dpbi5yYXpvcg==
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/NEC/Desktop/BudgetBuddy/_Imports.razor]
+[C:/Users/ndong/OneDrive/jared ndonga/BudgetBuddy-1/_Imports.razor]
 build_metadata.AdditionalFiles.TargetPath = X0ltcG9ydHMucmF6b3I=
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/NEC/Desktop/BudgetBuddy/Pages/Home.razor]
+[C:/Users/ndong/OneDrive/jared ndonga/BudgetBuddy-1/Pages/Home.razor]
 build_metadata.AdditionalFiles.TargetPath = UGFnZXNcSG9tZS5yYXpvcg==
 build_metadata.AdditionalFiles.CssScope = b-le97ms730n
 
-[C:/Users/NEC/Desktop/BudgetBuddy/Pages/Account/Login.cshtml]
+[C:/Users/ndong/OneDrive/jared ndonga/BudgetBuddy-1/Pages/Account/Login.cshtml]
 build_metadata.AdditionalFiles.TargetPath = UGFnZXNcQWNjb3VudFxMb2dpbi5jc2h0bWw=
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/NEC/Desktop/BudgetBuddy/Pages/Account/Logout.cshtml]
+[C:/Users/ndong/OneDrive/jared ndonga/BudgetBuddy-1/Pages/Account/Logout.cshtml]
 build_metadata.AdditionalFiles.TargetPath = UGFnZXNcQWNjb3VudFxMb2dvdXQuY3NodG1s
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/NEC/Desktop/BudgetBuddy/Pages/Account/Register.cshtml]
+[C:/Users/ndong/OneDrive/jared ndonga/BudgetBuddy-1/Pages/Account/Register.cshtml]
 build_metadata.AdditionalFiles.TargetPath = UGFnZXNcQWNjb3VudFxSZWdpc3Rlci5jc2h0bWw=
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/NEC/Desktop/BudgetBuddy/Pages/Shared/_Layout.cshtml]
+[C:/Users/ndong/OneDrive/jared ndonga/BudgetBuddy-1/Pages/Shared/_Layout.cshtml]
 build_metadata.AdditionalFiles.TargetPath = UGFnZXNcU2hhcmVkXF9MYXlvdXQuY3NodG1s
 build_metadata.AdditionalFiles.CssScope = 
 
-[C:/Users/NEC/Desktop/BudgetBuddy/Pages/_Host.cshtml]
+[C:/Users/ndong/OneDrive/jared ndonga/BudgetBuddy-1/Pages/_Host.cshtml]
 build_metadata.AdditionalFiles.TargetPath = UGFnZXNcX0hvc3QuY3NodG1s
 build_metadata.AdditionalFiles.CssScope = 

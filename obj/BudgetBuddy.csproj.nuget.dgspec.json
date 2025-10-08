@@ -1,20 +1,20 @@
 {
   "format": 1,
   "restore": {
-    "C:\\Users\\NEC\\Desktop\\BudgetBuddy\\BudgetBuddy.csproj": {}
+    "C:\\Users\\ndong\\OneDrive\\jared ndonga\\BudgetBuddy-1\\BudgetBuddy.csproj": {}
   },
   "projects": {
-    "C:\\Users\\NEC\\Desktop\\BudgetBuddy\\BudgetBuddy.csproj": {
+    "C:\\Users\\ndong\\OneDrive\\jared ndonga\\BudgetBuddy-1\\BudgetBuddy.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "C:\\Users\\NEC\\Desktop\\BudgetBuddy\\BudgetBuddy.csproj",
+        "projectUniqueName": "C:\\Users\\ndong\\OneDrive\\jared ndonga\\BudgetBuddy-1\\BudgetBuddy.csproj",
         "projectName": "BudgetBuddy",
-        "projectPath": "C:\\Users\\NEC\\Desktop\\BudgetBuddy\\BudgetBuddy.csproj",
-        "packagesPath": "C:\\Users\\NEC\\.nuget\\packages\\",
-        "outputPath": "C:\\Users\\NEC\\Desktop\\BudgetBuddy\\obj\\",
+        "projectPath": "C:\\Users\\ndong\\OneDrive\\jared ndonga\\BudgetBuddy-1\\BudgetBuddy.csproj",
+        "packagesPath": "C:\\Users\\ndong\\.nuget\\packages\\",
+        "outputPath": "C:\\Users\\ndong\\OneDrive\\jared ndonga\\BudgetBuddy-1\\obj\\",
         "projectStyle": "PackageReference",
         "configFilePaths": [
-          "C:\\Users\\NEC\\AppData\\Roaming\\NuGet\\NuGet.Config"
+          "C:\\Users\\ndong\\AppData\\Roaming\\NuGet\\NuGet.Config"
         ],
         "originalTargetFrameworks": [
           "net8.0"
@@ -112,24 +112,6 @@
           ],
           "assetTargetFallback": true,
           "warn": true,
-          "downloadDependencies": [
-            {
-              "name": "Microsoft.AspNetCore.App.Ref",
-              "version": "[8.0.20, 8.0.20]"
-            },
-            {
-              "name": "Microsoft.NETCore.App.Host.win-x64",
-              "version": "[8.0.20, 8.0.20]"
-            },
-            {
-              "name": "Microsoft.NETCore.App.Ref",
-              "version": "[8.0.20, 8.0.20]"
-            },
-            {
-              "name": "Microsoft.WindowsDesktop.App.Ref",
-              "version": "[8.0.20, 8.0.20]"
-            }
-          ],
           "frameworkReferences": {
             "Microsoft.AspNetCore.App": {
               "privateAssets": "none"
