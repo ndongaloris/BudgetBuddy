@@ -1,0 +1,349 @@
+@page "/accounts"
+@layout MainLayout
+@using BudgetBuddy.Models
+@using BudgetBuddy.Data
+@using Microsoft.EntityFrameworkCore
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Identity
+@inject IServiceProvider Services
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+
+<PageTitle>My Accounts - BudgetBuddy</PageTitle>
+
+<style>
+    body { background-color: #f8f9fa !important; }
+    .container-fluid { background-color: transparent !important; }
+    .my-account { color: #000; }
+    .manage-finance { padding-bottom: 10px; }
+
+    .text-balance-negative { color: #cc7000 !important; }
+
+    .account-balance.positive { color: #28a745; font-weight: 700; font-size: 1.25rem; }
+    .account-balance.negative { color: #cc7000; font-weight: 700; font-size: 1.25rem; }
+
+    .account-card { transition: transform 0.2s ease; }
+    .account-card:hover { transform: translateY(-3px); }
+
+    .summary-grid { flex-wrap: wrap; gap: 1rem; }
+    .summary-item { min-width: 160px; flex: 1; }
+
+    .summary-icon { display: flex; align-items: center; justify-content: center; width: 40px; height: 40px; }
+</style>
+
+<div class="container-fluid px-4 py-4">
+    <div class="page-header">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h1 class="h3 mb-0 fw-bold my-account">My Accounts</h1>
+                <p class="text-muted mb-0 manage-finance">Manage your financial accounts and track balances</p>
+            </div>
+            <a class="btn btn-success" href="/accounts/create">
+                <i class="fas fa-plus me-2"></i>Add Account
+            </a>
+        </div>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary mb-3" role="status"></div>
+            <p class="text-muted">Loading accounts...</p>
+        </div>
+    }
+    else if (currentUser == null)
+    {
+        <div class="alert alert-warning mt-3">
+            <i class="fas fa-exclamation-triangle me-2"></i>
+            Unable to load user — please <a href="/Account/Login">sign in</a>.
+        </div>
+    }
+    else
+    {
+        @if (errors.Any())
+        {
+            <div class="alert alert-danger">
+                <ul class="mb-0">
+                    @foreach (var e in errors)
+                    {
+                        <li>@e</li>
+                    }
+                </ul>
+            </div>
+        }
+
+        <!-- Summary Section -->
+        <div class="summary-section mb-4">
+            <h5 class="mb-3">Account Summary</h5>
+
+            @if (accounts == null || !accounts.Any())
+            {
+                <div class="alert alert-info">
+                    No account data available yet — add your first account to see summary.
+                </div>
+            }
+            else
+            {
+                var totalBalance = accounts.Sum(a => a.Balance);
+                var totalNegative = totalBalance < 0m;
+                var totalClass = totalNegative ? "text-balance-negative" : "text-success";
+                var totalAccounts = accounts.Count;
+                var creditCards = accounts.Count(a => a.Type?.ToLower().Contains("credit") == true);
+                var checkingAccounts = accounts.Count(a => a.Type?.ToLower().Contains("checking") == true);
+
+                <div class="summary-grid d-flex justify-content-between flex-wrap">
+                    <div class="summary-item p-3 bg-white rounded shadow-sm">
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="summary-icon p-2 rounded" style="background-color: #e8f5e8; color: #28a745;">
+                                <i class="fas fa-wallet"></i>
+                            </div>
+                            <div>
+                                <div class="summary-title small text-muted">Total Balance</div>
+                                <div class="summary-value fw-bold @totalClass">
+                                    @(totalNegative
+                                        ? "-" + Math.Abs(totalBalance).ToString("C")
+                                        : totalBalance.ToString("C"))
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="summary-item p-3 bg-white rounded shadow-sm">
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="summary-icon p-2 rounded" style="background-color: #e3f2fd; color: #1976d2;">
+                                <i class="fas fa-university"></i>
+                            </div>
+                            <div>
+                                <div class="summary-title small text-muted">Total Accounts</div>
+                                <div class="summary-value fw-bold">@totalAccounts</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="summary-item p-3 bg-white rounded shadow-sm">
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="summary-icon p-2 rounded" style="background-color: #fff3e0; color: #f57c00;">
+                                <i class="fas fa-credit-card"></i>
+                            </div>
+                            <div>
+                                <div class="summary-title small text-muted">Credit Cards</div>
+                                <div class="summary-value fw-bold">@creditCards</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="summary-item p-3 bg-white rounded shadow-sm">
+                        <div class="d-flex align-items-center gap-2">
+                            <div class="summary-icon p-2 rounded" style="background-color: #f3e5f5; color: #7b1fa2;">
+                                <i class="fas fa-chart-line"></i>
+                            </div>
+                            <div>
+                                <div class="summary-title small text-muted">Checking Accounts</div>
+                                <div class="summary-value fw-bold">@checkingAccounts</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            }
+        </div>
+
+        <!-- Accounts List -->
+        <div class="row">
+            @if (accounts == null || !accounts.Any())
+            {
+                <div class="col-12">
+                    <div class="alert alert-info">No accounts found. Add an account to get started.</div>
+                </div>
+            }
+            else
+            {
+                @foreach (var account in accounts)
+                {
+                    var isNegative = account.Balance < 0m;
+                    <div class="col-lg-6 mb-4">
+                        <div class="account-card p-3 bg-white rounded shadow-sm h-100">
+                            <div class="d-flex justify-content-between align-items-start">
+                                <div class="d-flex align-items-center">
+                                    <div class="account-icon me-3"
+                                         style="width:48px;height:48px;border-radius:50%;
+                                                background:@GetAccountIconColor(account.Type);
+                                                color:white;display:flex;
+                                                align-items:center;justify-content:center;">
+                                        <i class="@GetAccountIcon(account.Type)"></i>
+                                    </div>
+                                    <div>
+                                        <div class="account-name fw-semibold">@account.Name</div>
+                                        <div class="text-muted small">@account.Type</div>
+                                    </div>
+                                </div>
+
+                                <div class="d-flex align-items-center gap-2">
+                                 <button class="btn btn-sm btn-light text-info" title="View Details"
+                                        @onclick="() => ViewAccount(account.Id)">
+                                    <i class="fas fa-eye"></i>
+                                </button>
+                                    <button class="btn btn-sm btn-light text-primary" title="Edit"
+                                            @onclick="() => EditAccount(account.Id)">
+                                        <i class="fas fa-edit"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-light text-danger" title="Delete"
+                                            @onclick="() => DeleteAccount(account.Id)">
+                                        <i class="fas fa-trash"></i>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div class="mt-3">
+                                <div class="account-balance @(isNegative ? "negative" : "positive")">
+                                    @(isNegative
+                                        ? "-" + Math.Abs(account.Balance).ToString("C")
+                                        : account.Balance.ToString("C"))
+                                </div>
+
+                                <div class="account-details mt-3 d-flex gap-3 flex-wrap">
+                                    <div class="detail-item p-2 bg-light rounded" style="min-width:120px;">
+                                        <div class="detail-label small text-muted">Available</div>
+                                        <div class="detail-value">
+                                            @(isNegative
+                                                ? "-" + Math.Abs(account.Balance).ToString("C")
+                                                : account.Balance.ToString("C"))
+                                        </div>
+                                    </div>
+
+                                    <div class="detail-item p-2 bg-light rounded" style="min-width:120px;">
+                                        <div class="detail-label small text-muted">Type</div>
+                                        <div class="detail-value">@account.Type</div>
+                                    </div>
+
+                                    <div class="detail-item p-2 bg-light rounded" style="min-width:120px;">
+                                        <div class="detail-label small text-muted">Last Updated</div>
+                                        <div class="detail-value">Just now</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                }
+            }
+        </div>
+    }
+</div>
+
+@code {
+    private List<Account> accounts = new();
+    private User? currentUser;
+    private bool isLoading = true;
+    private List<string> errors = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadCurrentUser();
+        if (currentUser != null)
+            await LoadAccounts();
+        isLoading = false;
+    }
+
+    private async Task LoadCurrentUser()
+    {
+        try
+        {
+            var authStateProvider = Services.GetService(typeof(AuthenticationStateProvider)) as AuthenticationStateProvider;
+            var authState = await authStateProvider!.GetAuthenticationStateAsync();
+            var user = authState.User;
+
+            if (user.Identity?.IsAuthenticated == true)
+            {
+                using var scope = Services.CreateScope();
+                var userManager = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
+                currentUser = await userManager.GetUserAsync(user);
+            }
+            else
+            {
+                Navigation.NavigateTo("/Account/Login", true);
+            }
+        }
+        catch (Exception ex)
+        {
+            errors.Add($"Error loading user: {ex.Message}");
+        }
+    }
+
+    private async Task LoadAccounts()
+    {
+        try
+        {
+            using var scope = Services.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<FinancyContext>();
+            accounts = await db.Accounts
+                .Where(a => a.UserId == currentUser!.Id)
+                .OrderByDescending(a => a.Id)
+                .ToListAsync();
+        }
+        catch (Exception ex)
+        {
+            errors.Add($"Error fetching accounts: {ex.Message}");
+        }
+    }
+
+    private void EditAccount(int id) => Navigation.NavigateTo($"/accounts/edit/{id}");
+    private void ViewAccount(int id) => Navigation.NavigateTo($"/accounts/details/{id}");
+
+    private async Task DeleteAccount(int id)
+    {
+        bool confirmed = await JSRuntime.InvokeAsync<bool>("confirm", "Delete this account? This will also remove associated transactions.");
+        if (!confirmed) return;
+
+        try
+        {
+            using var scope = Services.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<FinancyContext>();
+            var acc = await db.Accounts.FindAsync(id);
+
+            if (acc == null)
+            {
+                errors.Add("Account not found.");
+                return;
+            }
+
+            if (acc.UserId != currentUser?.Id)
+            {
+                errors.Add("You are not authorized to delete this account.");
+                return;
+            }
+
+            db.Accounts.Remove(acc);
+            await db.SaveChangesAsync();
+            accounts.RemoveAll(a => a.Id == id);
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            errors.Add($"Delete error: {ex.Message}");
+        }
+    }
+
+    private string GetAccountIcon(string? type)
+    {
+        return type?.ToLower() switch
+        {
+            "checking" => "fas fa-university",
+            "savings" => "fas fa-piggy-bank",
+            "credit" or "credit card" => "fas fa-credit-card",
+            _ => "fas fa-wallet"
+        };
+    }
+
+    private string GetAccountIconColor(string? type)
+    {
+        return type?.ToLower() switch
+        {
+            "checking" => "#1976d2",
+            "savings" => "#28a745",
+            "credit" or "credit card" => "#f57c00",
+            _ => "#6c757d"
+        };
+    }
+}

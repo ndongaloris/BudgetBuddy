@@ -1,0 +1,1000 @@
+@page "/transactions"
+@layout MainLayout
+
+@using BudgetBuddy.Models
+@using BudgetBuddy.Data
+@using Microsoft.EntityFrameworkCore
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.AspNetCore.Authorization
+@using System.Text
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject UserManager<User> UserManager
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+@inject IServiceProvider Services
+
+@attribute [Authorize]
+
+<PageTitle>BudgetBuddy - Transactions</PageTitle>
+
+<style>
+    body {
+        background-color: #f8f9fa !important;
+    }
+
+    .container-fluid {
+        background-color: transparent !important;
+    }
+
+    .text-balance-negative { color: #cc7000; } /* dark orange */
+    .text-balance-positive { color: #007bff; } /* blue */
+
+    .summary-cards {
+        display: grid;
+        grid-template-columns: repeat(4, 1fr); /* 4 equal-width cards */
+        gap: 1rem;
+        margin-bottom: 1rem;
+    }
+
+    .summary-card {
+        background: white;
+        padding: 1rem;
+        border-radius: 8px;
+        box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+        text-align: center;
+    }
+
+    .fa-download {
+        font-size: 20px;
+    }
+
+    .summary-title { color:#6c757d; font-size:0.95rem; }
+    .summary-value { font-size:1.25rem; font-weight:700; margin-top:0.25rem; }
+
+    .transactions-container { background:white; padding:1rem; border-radius:8px; box-shadow:0 2px 6px rgba(0,0,0,0.12); }
+    .transaction-item { display:flex; align-items:center; gap:1rem; padding:0.75rem 0; border-bottom:1px solid #f1f1f1; }
+    .transaction-item:last-child { border-bottom: none; }
+    .transaction-icon { width:40px; height:40px; border-radius:8px; display:flex; align-items:center; justify-content:center; font-weight:600; }
+    .transaction-details { flex:1; }
+    .transaction-meta { color:#6c757d; font-size:0.85rem; margin-top:0.25rem; display:flex; gap:1rem; flex-wrap:wrap; }
+    .transaction-amount { min-width:110px; text-align:right; font-weight:700; }
+    .transaction-amount.positive { color:#28a745; }
+    .transaction-amount.negative { color:#dc3545; }
+    .btn-action { background:none; border:none; color:#6c757d; padding:4px 6px; }
+    .btn-action:hover { color:#000; }
+
+    .pagination-container { margin-top:1rem; display:flex; justify-content:space-between; align-items:center; }
+
+    .form-select {
+        padding:7px;
+        margin-top:18px;
+    }
+
+    /* ===== RESPONSIVE MEDIA QUERIES ===== */
+
+    /* Large devices (desktops, 1200px and down) */
+    @@media (max-width: 1200px) {
+        .container-fluid {
+            padding-left: 2rem;
+            padding-right: 2rem;
+        }
+    }
+
+    /* Medium devices (tablets, 992px and down) */
+    @@media (max-width: 992px) {
+        .summary-cards {
+            grid-template-columns: repeat(2, 1fr);
+            gap: 0.75rem;
+        }
+
+        .page-header .d-flex {
+            flex-direction: column;
+            align-items: flex-start !important;
+            gap: 1rem;
+        }
+
+        .page-header .d-flex .d-flex {
+            width: 100%;
+            justify-content: flex-start;
+        }
+
+        .filters-container .row {
+            gap: 1rem;
+        }
+
+        .filters-container .col-md-3 {
+            width: 100%;
+        }
+
+        .transaction-item {
+            gap: 0.75rem;
+            padding: 1rem 0;
+        }
+
+        .transaction-meta {
+            gap: 0.5rem;
+        }
+    }
+
+    /* Small devices (landscape phones, 768px and down) */
+    @@media (max-width: 768px) {
+        .container-fluid {
+            padding-left: 1rem;
+            padding-right: 1rem;
+            padding-top: 1rem;
+            padding-bottom: 1rem;
+        }
+
+        .summary-cards {
+            grid-template-columns: 1fr;
+            gap: 0.5rem;
+        }
+
+        .summary-card {
+            padding: 0.75rem;
+        }
+
+        .summary-value {
+            font-size: 1.1rem;
+        }
+
+        .filters-container .d-flex {
+            flex-direction: column;
+            align-items: stretch;
+        }
+
+        .filters-container .d-flex .btn {
+            width: 100%;
+            margin-bottom: 0.5rem;
+        }
+
+        .filters-container .d-flex .ms-auto {
+            margin-left: 0 !important;
+            margin-top: 1rem;
+        }
+
+        .transactions-container .d-flex {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: 1rem;
+        }
+
+        .transaction-item {
+            flex-wrap: wrap;
+            position: relative;
+            padding: 1rem 0;
+        }
+
+        .transaction-icon {
+            width: 35px;
+            height: 35px;
+            font-size: 0.8rem;
+        }
+
+        .transaction-details {
+            min-width: calc(100% - 120px);
+        }
+
+        .transaction-amount {
+            position: absolute;
+            top: 1rem;
+            right: 0;
+            min-width: auto;
+        }
+
+        .transaction-actions {
+            display: flex;
+            gap: 0.5rem;
+            margin-top: 0.5rem;
+            width: 100%;
+            justify-content: flex-end;
+        }
+
+        .transaction-meta {
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .pagination-container {
+            flex-direction: column;
+            gap: 1rem;
+            text-align: center;
+        }
+
+        .pagination {
+            justify-content: center;
+        }
+    }
+
+    /* Extra small devices (phones, 576px and down) */
+    @@media (max-width: 576px) {
+        .container-fluid {
+            padding-left: 0.5rem;
+            padding-right: 0.5rem;
+        }
+
+        .page-header h1 {
+            font-size: 1.5rem;
+        }
+
+        .page-header .btn {
+            font-size: 0.85rem;
+            padding: 0.5rem 0.75rem;
+        }
+
+        .page-header .d-flex .d-flex {
+            flex-direction: column;
+            width: 100%;
+        }
+
+        .page-header .d-flex .d-flex .btn {
+            width: 100%;
+            margin-bottom: 0.5rem;
+        }
+
+        .summary-card {
+            padding: 0.5rem;
+        }
+
+        .summary-title {
+            font-size: 0.85rem;
+        }
+
+        .summary-value {
+            font-size: 1rem;
+        }
+
+        .filters-container h5 {
+            font-size: 1.1rem;
+        }
+
+        .filter-label {
+            font-size: 0.9rem;
+        }
+
+        .form-select, .form-control {
+            font-size: 0.9rem;
+        }
+
+        .transactions-container {
+            padding: 0.75rem;
+        }
+
+        .transactions-container h5 {
+            font-size: 1.1rem;
+        }
+
+        .transaction-item {
+            gap: 0.5rem;
+        }
+
+        .transaction-name {
+            font-size: 0.9rem;
+        }
+
+        .transaction-meta {
+            font-size: 0.75rem;
+        }
+
+        .transaction-amount {
+            font-size: 0.9rem;
+        }
+
+        .btn-action {
+            padding: 3px 5px;
+        }
+
+        .results-info {
+            font-size: 0.85rem;
+            text-align: center;
+        }
+
+        .pagination .page-link {
+            padding: 0.375rem 0.5rem;
+            font-size: 0.8rem;
+        }
+
+        /* Export and sort controls */
+        .transactions-container .d-flex .d-flex {
+            flex-direction: column;
+            width: 100%;
+            gap: 0.5rem;
+        }
+
+        #exportBtnTop, #sortSelect {
+            width: 100%;
+        }
+
+        #sortSelect {
+            margin-left: 0 !important;
+        }
+
+        .fw-bold{
+            color: #000;
+        }
+    }
+
+    /* Very small devices (phones, 400px and down) */
+    @@media (max-width: 400px) {
+        .container-fluid {
+            padding-left: 0.25rem;
+            padding-right: 0.25rem;
+        }
+
+        .summary-cards {
+            gap: 0.25rem;
+        }
+
+        .summary-card {
+            padding: 0.5rem 0.25rem;
+        }
+
+        .transaction-item {
+            padding: 0.75rem 0;
+        }
+
+        .transaction-icon {
+            width: 30px;
+            height: 30px;
+            font-size: 0.7rem;
+        }
+
+        .transaction-details {
+            min-width: calc(100% - 100px);
+        }
+
+        .pagination .page-link {
+            padding: 0.25rem 0.375rem;
+            font-size: 0.75rem;
+        }
+
+        .pagination-container .results-info {
+            font-size: 0.8rem;
+        }
+    }
+
+    /* Large screens (desktops, 1400px and up) */
+    @@media (min-width: 1400px) {
+        .container-fluid {
+            max-width: 1320px;
+            margin: 0 auto;
+        }
+    }
+
+    /* Print styles */
+    @@media print {
+        .btn, .filters-container, .transaction-actions, .fa-download {
+            display: none !important;
+        }
+
+        .transactions-container {
+            box-shadow: none;
+            border: 1px solid #ddd;
+        }
+
+        .summary-cards {
+            grid-template-columns: repeat(4, 1fr);
+        }
+    }
+
+    /* High DPI screens */
+    @@media (-webkit-min-device-pixel-ratio: 2), (min-resolution: 192dpi) {
+        .summary-card, .transactions-container {
+            box-shadow: 0 2px 6px rgba(0,0,0,0.12);
+        }
+    }
+
+    /* Dark mode support */
+    @@media (prefers-color-scheme: dark) {
+        @@media (max-width: 768px) {
+
+            body{
+                background-color: #f8f9fa !important;
+            }
+            .summary-card, .transactions-container {
+                background-color: #000;
+                color: #e2e8f0;
+            }
+
+            .text-muted {
+                color: #a0aec0 !important;
+            }
+
+            .btn-filter{
+            margin-top:5px;
+            }
+
+            .btn-clear{
+            margin-top:3px;
+            margin-bottom:35px;
+        }
+
+        .new-gap{
+            margin-bottom: -20px;
+        }
+
+        .recent-transaction{
+            color:#fff !important;
+        }
+
+        .all-types{
+            margin-top: -40px;
+            margin-bottom: -20px
+        }
+
+        .recent-transaction{
+            padding: 20px;
+        }
+
+        .new-sort{
+            margin-bottom: -10px;
+        }
+
+    }
+
+        .searching{
+            padding:7px;
+             margin-top:11px;"
+        }
+
+        .filter-transaction{
+            color:#000 !important;
+        }
+
+        }
+    }
+
+    .btn-filter, .btn-clear{
+        margin-top:35px;
+        margin-bottom:35px;
+    }
+
+    .searching{
+        padding:7px; margin-top:11px;"
+    }
+
+    .filter-transaction{
+        color:#000 !important;
+    }
+
+    .recent-transaction{
+        color:#000 !important;
+    }
+
+</style>
+
+
+<div class="container-fluid px-4 py-4">
+    <!-- Header -->
+    <div class="page-header mb-3">
+        <div class="d-flex justify-content-between align-items-center">
+            <div>
+                <h1 class="h3 mb-0 fw-bold" style="color:black">All Transactions</h1>
+                <p class="text-muted mb-0">View and manage all your financial transactions</p>
+            </div>
+            <div class="d-flex gap-2">
+                <button class="btn btn-success" @onclick="@(() => Navigation.NavigateTo("/income"))">
+                    <i class="fas fa-plus me-2"></i>Add Income
+                </button>
+                <button class="btn btn-danger" @onclick="@(() => Navigation.NavigateTo("/expense"))">
+                    <i class="fas fa-plus me-2"></i>Add Expense
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Summary Cards -->
+    <div class="summary-cards">
+        <div class="summary-card">
+            <div class="summary-title">Total Income</div>
+            <div class="summary-value">@totalIncome.ToString("C")</div>
+        </div>
+        <div class="summary-card">
+            <div class="summary-title">Total Expenses</div>
+            <div class="summary-value">@totalExpenses.ToString("C")</div>
+        </div>
+        <div class="summary-card">
+            <div class="summary-title">Net Balance</div>
+            <div class="summary-value @(netBalance < 0 ? "text-danger" : "text-success")">
+                @(netBalance < 0 ? "-" + Math.Abs(netBalance).ToString("C") : netBalance.ToString("C"))
+            </div>
+        </div>
+        <div class="summary-card">
+            <div class="summary-title">Transactions</div>
+            <div class="summary-value">@transactionsCount</div>
+        </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="filters-container mb-3">
+        <h5 class="mb-3 filter-transaction">Filter Transactions</h5>
+        <div class="row g-3">
+            <div class="col-md-3">
+                <label class="">Date Range</label>
+                <select class="form-select date-range" @bind="filterDateRange">
+                    <option value="all">All Time</option>
+                    <option value="today">Today</option>
+                    <option value="week">This Week</option>
+                    <option value="month">This Month</option>
+                    <option value="quarter">This Quarter</option>
+                    <option value="year">This Year</option>
+                </select>
+            </div>
+
+            <div class="col-md-3">
+                <label>Type</label>
+                <select class="form-select all-types" @bind="filterType">
+                    <option value="all">All Types</option>
+                    <option value="income">Income Only</option>
+                    <option value="expense">Expenses Only</option>
+                </select>
+            </div>
+
+            <div class="col-md-3">
+                <label>Category</label>
+                <select class="form-select new-gap" @bind="filterCategoryId">
+                    <option value="0">All Categories</option>
+                    @if (categories != null)
+                    {
+                        @foreach (var c in categories)
+                        {
+                            <option value="@c.Id">@c.Name</option>
+                        }
+                    }
+                </select>
+            </div>
+
+            <div class="col-md-3">
+                <label class="filter-label new-gap">Search</label>
+                <input type="text" class="form-control searching" placeholder="Search transactions..." @bind="filterSearch" />
+            </div>
+        </div>
+
+        <div class="d-flex gap-2 mt-3">
+            <button class="btn btn-filter btn-primary btn-sm" @onclick="ApplyFilters">
+                <i class="fas fa-filter me-2"></i>Apply Filters
+            </button>
+            <button class="btn btn-clear btn-outline-secondary btn-sm" @onclick="ClearFilters">
+                <i class="fas fa-times me-2"></i>Clear All
+            </button>
+
+            <!-- <button class="btn btn-outline-secondary ms-auto btn-sm" @onclick="ExportToCsv">
+                <i class="fas fa-download me-1"></i>Export CSV
+            </button> -->
+
+            <!-- <select class="form-select form-select-sm ms-2" style="width:auto;" @bind="sort">
+                <option value="date_desc">Sort by Date (newest)</option>
+                <option value="date_asc">Sort by Date (oldest)</option>
+                <option value="amount_desc">Amount (high→low)</option>
+                <option value="amount_asc">Amount (low→high)</option>
+                <option value="category_asc">Category (A→Z)</option>
+                <option value="category_desc">Category (Z→A)</option>
+            </select> -->
+        </div>
+    </div>
+
+    <!-- Transactions -->
+    <div class="transactions-container mt-3">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="mb-0 recent-transaction">Recent Transactions</h5>
+            <div class="d-flex gap-2 align-items-center">
+               
+               <button class="btn btn-sm btn-outline-secondary csv-export" @onclick="ExportToCsv">
+                    <i class="fas fa-download me-1"></i>Export CSV
+                </button>
+                
+                <select class="form-select form-select-sm ms-2 new-sort" style="width:auto;" @bind="sort">
+                <option value="date_desc">Sort by Date (newest)</option>
+                <option value="date_asc">Sort by Date (oldest)</option>
+                <option value="amount_desc">Amount (high→low)</option>
+                <option value="amount_asc">Amount (low→high)</option>
+                <option value="category_asc">Category (A→Z)</option>
+                <option value="category_desc">Category (Z→A)</option>
+            </select>
+                <select class="form-select form-select-sm" style="width:auto;" @bind="pageSize">
+                    <option value="5">5 / page</option>
+                    <option value="10">10 / page</option>
+                    <option value="25">25 / page</option>
+                    <option value="50">50 / page</option>
+                </select>
+            </div>
+        </div>
+
+        <div id="transactionsList">
+            @if (isLoading)
+            {
+                <div class="text-center py-3">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="text-muted mt-2">Loading transactions...</p>
+                </div>
+            }
+            else if (transactions == null || !transactions.Any())
+            {
+                <div class="text-center py-4 text-muted">
+                    <i class="fas fa-receipt fa-2x mb-3"></i>
+                    <p>No transactions found.</p>
+                    @if (HasActiveFilters)
+                    {
+                        <p class="small">Try clearing your filters to see more results.</p>
+                    }
+                </div>
+            }
+            else
+            {
+                @foreach (var tx in transactions)
+                {
+                    <div class="transaction-item">
+                        <div class="transaction-icon" style="background-color:@(tx.IsIncome ? "#d4edda" : "#f8d7da"); color:@(tx.IsIncome ? "#155724" : "#721c24");">
+                            @GetInitials(tx.Description)
+                        </div>
+
+                        <div class="transaction-details">
+                            <div class="transaction-name">@tx.Description</div>
+                            <div class="transaction-meta">
+                                <span><i class="fas fa-tag me-1"></i>@(tx.Category?.Name ?? "Uncategorized")</span>
+                                <span><i class="fas fa-credit-card me-1"></i>@(tx.Account?.Name ?? "N/A")</span>
+                                <span><i class="fas fa-calendar me-1"></i>@tx.Date.ToString("MM/dd/yyyy")</span>
+                            </div>
+                        </div>
+
+                        <div class="transaction-amount @(tx.IsIncome ? "positive" : "negative")">
+                            @(tx.IsIncome ? "+" : "-")@tx.Amount.ToString("C")
+                        </div>
+
+                        <div class="transaction-actions d-flex align-items-center">
+                            <button class="btn-action" title="Edit" @onclick="() => OnEdit(tx)">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn-action text-danger" title="Delete" @onclick="() => OnDelete(tx)">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>
+                }
+            }
+        </div>
+
+        <!-- Pagination -->
+        @if (transactionsCount > 0)
+        {
+            <div class="pagination-container">
+                <div class="results-info">
+                    Showing @((currentPage - 1) * pageSize + 1)-@Math.Min(currentPage * pageSize, transactionsCount) of @transactionsCount result(s)
+                </div>
+                <nav>
+                    <ul class="pagination pagination-sm mb-0">
+                        <li class="page-item @(currentPage <= 1 ? "disabled" : "")">
+                            <button class="page-link" @onclick="() => GoToPage(currentPage - 1)" disabled="@(currentPage <= 1)">Previous</button>
+                        </li>
+                        @for (int p = Math.Max(1, currentPage - 2); p <= Math.Min(totalPages, currentPage + 2); p++)
+                        {
+                            <li class="page-item @(p == currentPage ? "active" : "")">
+                                <button class="page-link" @onclick="() => GoToPage(p)">@p</button>
+                            </li>
+                        }
+                        <li class="page-item @(currentPage >= totalPages ? "disabled" : "")">
+                            <button class="page-link" @onclick="() => GoToPage(currentPage + 1)" disabled="@(currentPage >= totalPages)">Next</button>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        }
+    </div>
+</div>
+
+@code {
+    private string filterDateRange = "month";
+    private string filterType = "all";
+    private int filterCategoryId = 0;
+    private string filterSearch = string.Empty;
+    private string sort = "date_desc";
+    private int pageSize = 10;
+    private int currentPage = 1;
+
+    private User? currentUser;
+    private List<Category>? categories;
+    private List<Transaction> transactions = new();
+    private decimal totalIncome = 0M;
+    private decimal totalExpenses = 0M;
+    private decimal netBalance = 0M;
+    private int transactionsCount = 0;
+    private int totalPages = 1;
+    private bool isLoading = true;
+    private bool HasActiveFilters => filterDateRange != "month" || filterType != "all" || filterCategoryId != 0 || !string.IsNullOrEmpty(filterSearch);
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadCurrentUser();
+        if (currentUser != null)
+        {
+            await LoadCategories();
+            await LoadTransactions();
+        }
+        isLoading = false;
+    }
+
+    private async Task LoadCurrentUser()
+    {
+        try
+        {
+            var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+            var user = authState.User;
+            
+            if (user.Identity?.IsAuthenticated == true)
+            {
+                using var scope = Services.CreateScope();
+                var userManager = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
+                currentUser = await userManager.GetUserAsync(user);
+                
+                if (currentUser == null)
+                {
+                    Console.WriteLine("User authenticated but not found in database");
+                    // Don't redirect immediately, let the page load and show appropriate message
+                }
+            }
+            else
+            {
+                Console.WriteLine("User not authenticated, redirecting to login");
+                Navigation.NavigateTo("/Account/Login", true);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading user: {ex.Message}");
+            // Don't redirect on error, let the page handle it gracefully
+        }
+    }
+
+    private async Task LoadCategories()
+    {
+        try
+        {
+            using var scope = Services.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<FinancyContext>();
+            categories = await db.Categories.OrderBy(c => c.Name).AsNoTracking().ToListAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading categories: {ex.Message}");
+            categories = new List<Category>();
+        }
+    }
+
+    private (DateTime start, DateTime end) CalculateRange()
+    {
+        var now = DateTime.Now;
+        return filterDateRange switch
+        {
+            "today" => (DateTime.Today, DateTime.Today.AddDays(1).AddTicks(-1)),
+            "week" => (DateTime.Today.AddDays(-(int)DateTime.Today.DayOfWeek), DateTime.Today.AddDays(1).AddTicks(-1)),
+            "month" => (new DateTime(now.Year, now.Month, 1), new DateTime(now.Year, now.Month, 1).AddMonths(1).AddTicks(-1)),
+            "quarter" => (new DateTime(now.Year, ((now.Month - 1) / 3) * 3 + 1, 1), new DateTime(now.Year, ((now.Month - 1) / 3) * 3 + 1, 1).AddMonths(3).AddTicks(-1)),
+            "year" => (new DateTime(now.Year, 1, 1), new DateTime(now.Year, 12, 31).AddDays(1).AddTicks(-1)),
+            _ => (DateTime.MinValue, DateTime.MaxValue)
+        };
+    }
+
+    private async Task LoadTransactions()
+    {
+        if (currentUser == null) 
+        {
+            Console.WriteLine("Cannot load transactions: currentUser is null");
+            return;
+        }
+
+        isLoading = true;
+        StateHasChanged();
+
+        try
+        {
+            using var scope = Services.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<FinancyContext>();
+            var (start, end) = CalculateRange();
+
+            var q = db.Transactions
+                .Include(t => t.Category)
+                .Include(t => t.Account)
+                .Where(t => t.UserId == currentUser.Id);
+
+            if (filterDateRange != "all")
+                q = q.Where(t => t.Date >= start && t.Date <= end);
+
+            if (filterType == "income")
+                q = q.Where(t => t.IsIncome);
+            else if (filterType == "expense")
+                q = q.Where(t => !t.IsIncome);
+
+            if (filterCategoryId > 0)
+                q = q.Where(t => t.CategoryId == filterCategoryId);
+
+            if (!string.IsNullOrWhiteSpace(filterSearch))
+            {
+                var s = filterSearch.Trim();
+                q = q.Where(t =>
+                    EF.Functions.Like(t.Description, $"%{s}%") ||
+                    (t.Category != null && EF.Functions.Like(t.Category.Name, $"%{s}%")) ||
+                    (t.Account != null && EF.Functions.Like(t.Account.Name, $"%{s}%")));
+            }
+
+            totalIncome = await q.Where(t => t.IsIncome).SumAsync(t => (decimal?)t.Amount) ?? 0;
+            totalExpenses = await q.Where(t => !t.IsIncome).SumAsync(t => (decimal?)t.Amount) ?? 0;
+            netBalance = totalIncome - totalExpenses;
+            transactionsCount = await q.CountAsync();
+
+            q = sort switch
+            {
+                "date_asc" => q.OrderBy(t => t.Date),
+                "amount_asc" => q.OrderBy(t => t.Amount),
+                "amount_desc" => q.OrderByDescending(t => t.Amount),
+                "category_asc" => q.OrderBy(t => t.Category!.Name),
+                "category_desc" => q.OrderByDescending(t => t.Category!.Name),
+                _ => q.OrderByDescending(t => t.Date)
+            };
+
+            totalPages = Math.Max(1, (int)Math.Ceiling(transactionsCount / (double)pageSize));
+            currentPage = Math.Clamp(currentPage, 1, totalPages);
+
+            transactions = await q.AsNoTracking()
+                .Skip((currentPage - 1) * pageSize)
+                .Take(pageSize)
+                .ToListAsync();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading transactions: {ex.Message}");
+            transactions = new List<Transaction>();
+            transactionsCount = 0;
+            totalIncome = 0;
+            totalExpenses = 0;
+            netBalance = 0;
+        }
+        finally
+        {
+            isLoading = false;
+            StateHasChanged();
+        }
+    }
+
+    private async Task ExportToCsv()
+    {
+        if (currentUser == null) 
+        {
+            await JSRuntime.InvokeVoidAsync("alert", "Please log in to export transactions");
+            return;
+        }
+
+        try
+        {
+            // Export the CURRENTLY DISPLAYED transactions (not all filtered ones)
+            var exportTransactions = transactions;
+
+            if (!exportTransactions.Any())
+            {
+                await JSRuntime.InvokeVoidAsync("alert", "No transactions to export");
+                return;
+            }
+
+            var csv = new StringBuilder();
+            // Add CSV headers
+            csv.AppendLine("Date,Description,Category,Account,Type,Amount");
+
+            foreach (var tx in exportTransactions)
+            {
+                var type = tx.IsIncome ? "Income" : "Expense";
+                var amount = tx.Amount; // Keep original amount, let user see positive/negative
+                var formattedAmount = tx.IsIncome ? $"+{amount:C}" : $"-{amount:C}";
+                
+                csv.AppendLine($"\"{tx.Date:yyyy-MM-dd}\",\"{EscapeCsvField(tx.Description)}\",\"{EscapeCsvField(tx.Category?.Name ?? "Uncategorized")}\",\"{EscapeCsvField(tx.Account?.Name ?? "N/A")}\",\"{type}\",\"{formattedAmount}\"");
+            }
+
+            // Convert to base64 and trigger download using standard JavaScript approach
+            var csvContent = csv.ToString();
+            var fileName = $"transactions-{DateTime.Now:yyyyMMdd-HHmmss}.csv";
+            
+            // Use a simpler JavaScript approach that doesn't require a predefined function
+            await JSRuntime.InvokeVoidAsync("eval", 
+                $@"(function() {{
+                    var blob = new Blob([{System.Text.Json.JsonSerializer.Serialize(csvContent)}], {{ type: 'text/csv;charset=utf-8;' }});
+                    var link = document.createElement('a');
+                    var url = URL.createObjectURL(blob);
+                    link.setAttribute('href', url);
+                    link.setAttribute('download', '{fileName}');
+                    link.style.visibility = 'hidden';
+                    document.body.appendChild(link);
+                    link.click();
+                    document.body.removeChild(link);
+                }})()");
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"Error exporting CSV: {ex.Message}");
+        }
+    }
+
+    private string EscapeCsvField(string field)
+    {
+        if (string.IsNullOrEmpty(field)) return "";
+        // Escape quotes by doubling them and wrap in quotes if contains comma, quote or newline
+        if (field.Contains('"') || field.Contains(',') || field.Contains('\n') || field.Contains('\r'))
+        {
+            return '"' + field.Replace("\"", "\"\"") + '"';
+        }
+        return field;
+    }
+
+    private async Task ApplyFilters() 
+    { 
+        currentPage = 1; 
+        await LoadTransactions(); 
+    }
+
+    private async Task ClearFilters()
+    {
+        filterDateRange = "month";
+        filterType = "all";
+        filterCategoryId = 0;
+        filterSearch = string.Empty;
+        sort = "date_desc";
+        pageSize = 10;
+        currentPage = 1;
+        await LoadTransactions();
+    }
+
+    private async Task GoToPage(int p)
+    {
+        currentPage = Math.Clamp(p, 1, totalPages);
+        await LoadTransactions();
+    }
+
+    private void OnEdit(Transaction tx)
+    {
+        if (tx.IsIncome)
+            Navigation.NavigateTo($"/income/{tx.Id}");
+        else
+            Navigation.NavigateTo($"/expense/{tx.Id}");
+    }
+
+    private async Task OnDelete(Transaction tx)
+    {
+        bool confirmed = await JSRuntime.InvokeAsync<bool>("confirm", $"Delete {(tx.IsIncome ? "income" : "expense")} '{tx.Description}'?");
+        if (!confirmed) return;
+
+        try
+        {
+            using var scope = Services.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<FinancyContext>();
+            var t = await db.Transactions.FirstOrDefaultAsync(x => x.Id == tx.Id && x.UserId == currentUser!.Id);
+            if (t == null) return;
+
+            if (t.AccountId != 0)
+            {
+                var acc = await db.Accounts.FirstOrDefaultAsync(a => a.Id == t.AccountId && a.UserId == currentUser!.Id);
+                if (acc != null)
+                {
+                    acc.Balance += t.IsIncome ? -t.Amount : t.Amount;
+                    db.Update(acc);
+                }
+            }
+
+            db.Transactions.Remove(t);
+            await db.SaveChangesAsync();
+            await LoadTransactions();
+        }
+        catch (Exception ex)
+        {
+            await JSRuntime.InvokeVoidAsync("alert", $"Error deleting transaction: {ex.Message}");
+        }
+    }
+
+    private string GetInitials(string? description)
+    {
+        if (string.IsNullOrWhiteSpace(description)) return "?";
+        var words = description.Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        return words.Length == 1
+            ? words[0].Substring(0, 1).ToUpper()
+            : (words[0][0].ToString() + words[1][0].ToString()).ToUpper();
+    }
+}

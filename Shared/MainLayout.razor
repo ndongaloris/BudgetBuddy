@@ -1,0 +1,518 @@
+
+<!-- Shared/MainLayout.razor -->
+
+@inherits LayoutComponentBase
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.AspNetCore.Components.Authorization
+@using BudgetBuddy.Models
+@inject IServiceProvider Services
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IJSRuntime JSRuntime
+@implements IDisposable
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>BudgetBuddy</title>
+
+    <link rel="stylesheet" href="lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="css/site.css" />
+    <link rel="stylesheet" href="css/layout.css" />
+
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+    /* ===============================
+   UNIVERSAL + RESPONSIVE STYLING
+   =============================== */
+
+/* Make layout scale well on all devices */
+html, body {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: hidden;
+}
+
+.navbar {
+    flex-wrap: wrap;
+}
+
+.navbar .container-fluid {
+    flex-wrap: wrap;
+}
+
+/* Buttons and profile */
+.btn-sm {
+    padding: 9px;
+}
+
+.profile-image {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+.profile-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #4361ee, #7209b7);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 600;
+    font-size: 0.875rem;
+}
+
+/* Dropdown button */
+.user-dropdown-btn {
+    background: none;
+    border: none;
+    padding: 0.25rem;
+    border-radius: 50%;
+    transition: background-color 0.2s ease;
+    cursor: pointer;
+}
+
+.user-dropdown-btn:hover {
+    background-color: rgba(0, 0, 0, 0.05);
+}
+
+/* ===============================
+   DROPDOWN FIXES + RESPONSIVENESS
+   =============================== */
+
+.dropdown-container {
+    position: relative;
+    display: inline-block;
+}
+
+/* Core dropdown styling */
+.dropdown-menu-blazor {
+    position: absolute;
+    top: 40px;
+    right: 0; /* keep aligned to button by default */
+    z-index: 2000; /* ensure it overlays content */
+    display: block;
+    min-width: 220px;
+    margin-top: 10px;
+    padding: 0.5rem 0;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 0.375rem;
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+    background-color: #ffffff; /* solid background */
+    backdrop-filter: blur(8px);
+}
+
+/* Keep menu text clear on background */
+.dropdown-menu-blazor * {
+    color: #212529;
+}
+
+/* Dropdown links */
+.dropdown-item {
+    padding: 0.5rem 1rem;
+    display: flex;
+    align-items: center;
+    text-decoration: none;
+    color: #000;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.dropdown-item:hover {
+    background-color: #f1f3ff;
+    color: #4a3aff;
+}
+
+/* Logout hover */
+.dropdown-item.text-danger:hover {
+    background-color: #6f1cf4ff;
+    color: #fff !important;
+}
+
+/* Divider and header */
+.dropdown-header {
+    padding: 0.5rem 1rem;
+}
+
+.dropdown-divider {
+    margin: 0.5rem 0;
+}
+
+/* Overlay to block background click */
+.click-outside-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    z-index: 1000;
+    background: transparent;
+}
+
+.dropdown-menu-blazor {
+    list-style: none;
+    padding-left: 0;
+    margin-bottom: 0;
+}
+
+/* ===============================
+   MOBILE RESPONSIVENESS
+   =============================== */
+
+@@media (max-width: 768px) {
+    .dropdown-menu-blazor {
+        right: 10px;   /* Prevent cutoff on left side */
+        left: auto;
+        top: 50px;
+        width: 90vw;  
+        max-width: 160px;
+        padding: 0.75rem 0;
+        box-shadow: 0 8px 25px rgba(0, 0, 0, 0.25);
+        margin-top:-5px;
+    }
+
+    .dropdown-item {
+        font-size: 0.95rem;
+        padding: 0.75rem 1rem;
+    }
+
+    .profile-icon, .profile-image {
+        width: 28px;
+        height: 28px;
+    }
+
+    .navbar-brand span {
+        font-size: 0.9rem;
+    }
+}
+
+/* Extremely small screens (≤480px) */
+@@media (max-width: 480px) {
+    .dropdown-menu-blazor {
+        right: 5px;
+        left: 5px;
+        width: calc(100vw - 10px);
+        top: 55px;
+        font-size: 0.9rem;
+        border-radius: 0.5rem;
+    }
+
+    .dropdown-item i {
+        margin-right: 0.5rem;
+        font-size: 1rem;
+    }
+
+    .dropdown-item {
+        padding: 0.6rem 0.8rem;
+    }
+}
+
+</style>
+
+</head>
+
+<body>
+    <div class="page-container">
+        <header>
+            <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom fixed-top">
+            <div class="container-fluid px-4">
+                <a class="navbar-brand d-flex align-items-center" href="/">
+                    <i class="fas fa-chart-line text-primary me-2"></i>
+                    BudgetBuddy
+                </a>
+
+                <button class="navbar-toggler" type="button" @onclick="ToggleNavbar"
+                        aria-controls="mainNavbar" aria-expanded="@isNavbarExpanded" aria-label="Toggle navigation">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+
+                <div class="collapse navbar-collapse @(isNavbarExpanded ? "show" : "")" id="mainNavbar">
+                    <ul class="navbar-nav mx-auto">
+                        <!-- Home - Always visible -->
+                        <li class="nav-item">
+                            <NavLink class="nav-link" href="/" Match="NavLinkMatch.All">
+                                <i class="fas fa-home me-1"></i>Home
+                            </NavLink>
+                        </li>
+                        
+                        <!-- Dashboard - Protected -->
+                        <li class="nav-item">
+                            @if (isSignedIn)
+                            {
+                                <NavLink class="nav-link" href="/dashboard">
+                                    <i class="fas fa-tachometer-alt me-1"></i> Dashboard
+                                </NavLink>
+                            }
+                            else
+                            {
+                                <a class="nav-link" href="/Account/Login" @onclick="CloseDropdown">
+                                    <i class="fas fa-tachometer-alt me-1"></i> Dashboard
+                                </a>
+                            }
+                        </li>
+                        
+                        <!-- Transactions - Protected -->
+                        <li class="nav-item">
+                            @if (isSignedIn)
+                            {
+                                <NavLink class="nav-link" href="/transactions">
+                                    <i class="fas fa-exchange-alt me-1"></i> Transactions
+                                </NavLink>
+                            }
+                            else
+                            {
+                                <a class="nav-link" href="/Account/Login" @onclick="CloseDropdown">
+                                    <i class="fas fa-exchange-alt me-1"></i> Transactions
+                                </a>
+                            }
+                        </li>
+                        
+                        <!-- Accounts - Protected -->
+                        <li class="nav-item">
+                            @if (isSignedIn)
+                            {
+                                <NavLink class="nav-link" href="/accounts">
+                                    <i class="fas fa-wallet me-1"></i>Accounts
+                                </NavLink>
+                            }
+                            else
+                            {
+                                <a class="nav-link" href="/Account/Login" @onclick="CloseDropdown">
+                                    <i class="fas fa-wallet me-1"></i>Accounts
+                                </a>
+                            }
+                        </li>
+                        
+                        <!-- Categories - Commented out as per original
+                        <li class="nav-item">
+                            <NavLink class="nav-link" href="/categories">
+                                <i class="fas fa-tags me-1"></i>Categories
+                            </NavLink>
+                        </li>
+                        -->
+                    </ul>
+
+                    <div class="d-flex align-items-center gap-3">
+                        @if (isSignedIn)
+                        {
+                            <!-- Settings - Protected -->
+                            <a href="/settings" class="text-muted text-decoration-none" title="Settings">
+                                <i class="fas fa-cog fs-5"></i>
+                            </a>
+                            
+                            <!-- Notifications - Protected -->
+                            <a href="/notifications" class="text-muted text-decoration-none position-relative" title="Notifications">
+                                <i class="fas fa-bell fs-5"></i>
+                                <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.6rem;">
+                                    3
+                                </span>
+                            </a>
+
+                            <!-- User Dropdown - Protected -->
+                            <div class="dropdown-container">
+                                <button class="user-dropdown-btn" type="button" @onclick="ToggleDropdown" title="User menu">
+                                    @if (!string.IsNullOrEmpty(CurrentUser?.ProfileImageUrl))
+                                    {
+                                        <img src="@CurrentUser.ProfileImageUrl" class="profile-image" alt="Profile" />
+                                    }
+                                    else
+                                    {
+                                        <div class="profile-icon">
+                                            @CurrentUser?.ProfileInitials
+                                        </div>
+                                    }
+                                </button>
+                                
+                                @if (isDropdownOpen)
+                                {
+                                    <ul class="dropdown-menu-blazor shadow" aria-labelledby="userDropdown">
+                                        <li>
+                                            <h6 class="dropdown-header text-dark">
+                                                <strong>@CurrentUser?.FullName</strong>
+                                                <div class="small text-muted">@CurrentUser?.Email</div>
+                                            </h6>
+                                        </li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li>
+                                            <NavLink class="dropdown-item" href="/profile" @onclick="CloseDropdown">
+                                                <i class="fas fa-user me-2 text-primary"></i>Profile
+                                            </NavLink>
+                                        </li>
+                                        <li>
+                                            <NavLink class="dropdown-item" href="/settings" @onclick="CloseDropdown">
+                                                <i class="fas fa-cog me-2 text-secondary"></i>Settings
+                                            </NavLink>
+                                        </li>
+                                        <li>
+                                            <NavLink class="dropdown-item" href="/help" @onclick="CloseDropdown">
+                                                <i class="fas fa-question-circle me-2 text-info"></i>Help & Support
+                                            </NavLink>
+                                        </li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li>
+                                            <a class="dropdown-item text-danger" href="/Account/Logout" @onclick="CloseDropdown">
+                                                <i class="fas fa-sign-out-alt me-2"></i>Logout
+                                            </a>
+                                        </li>
+                                    </ul>
+                                }
+                            </div>
+                        }
+                        else
+                        {
+                            <!-- Login/Signup - Only show when NOT signed in -->
+                            <a href="/Account/Login" class="btn btn-outline-primary me-2">
+                                <i class="fas fa-sign-in-alt me-1"></i>Login
+                            </a>
+                            <a href="/Account/Register" class="btn btn-primary btn-sm">
+                                <i class="fas fa-user-plus me-1"></i>Sign Up
+                            </a>
+                        }
+                    </div>
+                </div>
+            </div>
+        </nav>
+</header>
+
+        @if (isDropdownOpen)
+        {
+            <div class="click-outside-overlay" @onclick="CloseDropdown"></div>
+        }
+
+        <div class="main-content" style="margin-top: 80px; min-height: calc(100vh - 160px);">
+            <main role="main" class="pb-3">
+                @Body
+            </main>
+        </div>
+
+        <footer class="bg-white border-top py-4 mt-5">
+            <div class="container-fluid px-4">
+                <div class="row align-items-center">
+                    <div class="col-md-6">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-chart-line text-primary me-2"></i>
+                            <span class="fw-semibold text-muted">BudgetBuddy</span>
+                            <span class="text-muted ms-2">© 2025 All rights reserved</span>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="d-flex justify-content-md-end gap-4">
+                            <a href="#" class="text-muted text-decoration-none small">Privacy Policy</a>
+                            <a href="#" class="text-muted text-decoration-none small">Terms of Service</a>
+                            <a href="#" class="text-muted text-decoration-none small">Support</a>
+                            <a href="#" class="text-muted text-decoration-none small">Contact</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <script src="lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/site.js"></script>
+    
+</body>
+</html>
+
+@code {
+    private bool isSignedIn = false;
+    private bool isDropdownOpen = false;
+    private bool isNavbarExpanded = false; // <-- This is correct
+    private User? CurrentUser;
+
+    // Resolve Identity services at runtime so prerender won't throw if not available
+    private UserManager<User>? _userManager;
+    private SignInManager<User>? _signInManager;
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadAuthenticationState();
+    }
+
+    protected override void OnAfterRender(bool firstRender)
+    {
+        if (firstRender)
+        {
+            // Subscribe to the LocationChanged event to close the dropdown on navigation.
+            Navigation.LocationChanged += OnLocationChanged;
+        }
+    }
+
+    // FIX: This method is required because you use '@implements IDisposable'
+    public void Dispose()
+    {
+        // Unsubscribe to prevent memory leaks.
+        Navigation.LocationChanged -= OnLocationChanged;
+    }
+
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        // Close the dropdown when navigation occurs.
+        if (isDropdownOpen)
+        {
+            CloseDropdown();
+        }
+        // OPTIONAL: You can also close the mobile navbar on navigation
+        if (isNavbarExpanded)
+        {
+            isNavbarExpanded = false;
+            // StateHasChanged() is not strictly necessary here because Blazor will re-render
+            // the main layout automatically after navigation, but it doesn't hurt.
+        }
+    }
+
+    private async Task LoadAuthenticationState()
+    {
+        // Try safe service resolution
+        _userManager = Services.GetService(typeof(UserManager<User>)) as UserManager<User>;
+        _signInManager = Services.GetService(typeof(SignInManager<User>)) as SignInManager<User>;
+
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (user?.Identity != null && user.Identity.IsAuthenticated)
+        {
+            isSignedIn = true;
+
+            if (_userManager != null)
+            {
+                CurrentUser = await _userManager.GetUserAsync(user);
+            }
+        }
+        else
+        {
+            isSignedIn = false;
+            CurrentUser = null;
+        }
+    }
+
+    private void ToggleNavbar() // <-- This is correct
+    {
+        isNavbarExpanded = !isNavbarExpanded;
+        StateHasChanged();
+    }
+    
+    private void ToggleDropdown()
+    {
+        isDropdownOpen = !isDropdownOpen;
+        StateHasChanged();
+    }
+
+    private void CloseDropdown()
+    {
+        if (isDropdownOpen)
+        {
+            isDropdownOpen = false;
+            StateHasChanged();
+        }
+    }
+}

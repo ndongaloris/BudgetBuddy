@@ -1,0 +1,317 @@
+@page "/accounts/details/{Id:int}"
+@layout MainLayout
+@using BudgetBuddy.Models
+@using BudgetBuddy.Data
+@using Microsoft.EntityFrameworkCore
+@using Microsoft.AspNetCore.Components.Authorization
+@using Microsoft.AspNetCore.Identity
+@inject IServiceProvider Services
+@inject NavigationManager Navigation
+@inject IJSRuntime JSRuntime
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize]
+
+<PageTitle>Account Details - BudgetBuddy</PageTitle>
+
+<div class="container-fluid px-4 py-4">
+    <div class="page-header">
+        <a class="back-link" href="/accounts"><i class="fas fa-arrow-left"></i> Back to Accounts</a>
+        <h1 class="h3 mb-0 fw-bold">Account Details</h1>
+        <p class="text-muted mb-0">View detailed information about this account</p>
+    </div>
+
+    @if (isLoading)
+    {
+        <div class="text-center py-4">
+            <div class="spinner-border text-primary" role="status"></div>
+            <div class="text-muted mt-2">Loading account...</div>
+        </div>
+    }
+    else if (errors.Any())
+    {
+        <div class="alert alert-danger">
+            <ul class="mb-0">
+                @foreach (var e in errors) { <li>@e</li> }
+            </ul>
+        </div>
+    }
+    else if (Model == null)
+    {
+        <div class="alert alert-warning">Account not found or you don't have permission to view it.</div>
+    }
+    else
+    {
+        @if (showSuccessAlert)
+        {
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                <i class="fas fa-check-circle me-2"></i> @successMessage
+                <button type="button" class="btn-close" @onclick="() => showSuccessAlert = false"></button>
+            </div>
+        }
+
+        <div class="account-details-card">
+            <div class="account-header">
+                <div class="d-flex align-items-center">
+                    <div class="account-icon-large" style="background-color: @GetAccountIconColor(Model.Type); color: white;">
+                        <i class="@GetAccountIcon(Model.Type)"></i>
+                    </div>
+                    <div class="account-info">
+                        <div class="account-name-large">@Model.Name</div>
+                        <div class="account-type text-muted">@Model.Type</div>
+                    </div>
+                </div>
+
+                <div class="account-balance-large @(Model.Balance >= 0 ? "positive" : "negative")">
+                    @Model.Balance.ToString("C")
+                </div>
+            </div>
+
+            <div class="account-details-grid">
+                <div class="detail-item">
+                    <div class="detail-label">Account Name</div>
+                    <div class="detail-value">@Model.Name</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Account Type</div>
+                    <div class="detail-value">@Model.Type</div>
+                </div>
+                <div class="detail-item">
+                    <div class="detail-label">Current Balance</div>
+                    <div class="detail-value">@Model.Balance.ToString("C")</div>
+                </div>
+            </div>
+
+            <div class="account-actions mt-4 d-flex gap-2">
+                <a class="btn btn-secondary" href="/accounts">Back to List</a>
+
+                <button class="btn btn-warning" @onclick="@(() => Navigation.NavigateTo($"/accounts/edit/{Model.Id}"))">
+                    <i class="fas fa-edit me-1"></i>Edit
+                </button>
+
+                
+                <button class="btn btn-danger" @onclick="OpenDeleteModal">
+                    <i class="fas fa-trash me-1"></i>Delete
+                </button>
+            </div>
+        </div>
+    }
+</div>
+
+<!-- EDIT MODAL -->
+<div class="modal fade" id="editAccountModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <EditForm Model="editModel" OnValidSubmit="SubmitEdit">
+                <DataAnnotationsValidator />
+                <div class="modal-header">
+                    <h5 class="modal-title">Edit Account</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label">Account Name</label>
+                        <InputText class="form-control" @bind-Value="editModel.Name" />
+                        <ValidationMessage For="@(() => editModel.Name)" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Account Type</label>
+                        <InputSelect class="form-select" @bind-Value="editModel.Type">
+                            <option value="">Select Type</option>
+                            <option>Checking</option>
+                            <option>Savings</option>
+                            <option>Credit Card</option>
+                            <option>Investment</option>
+                            <option>Cash</option>
+                            <option>PayPal</option>
+                            <option>Other</option>
+                        </InputSelect>
+                        <ValidationMessage For="@(() => editModel.Type)" />
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Balance</label>
+                        <InputNumber class="form-control" @bind-Value="editModel.Balance" step="0.01" />
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success">Save Changes</button>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+</div>
+
+<!-- DELETE MODAL -->
+<div class="modal fade" id="deleteAccountModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title text-danger">Delete Account</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="mb-0">Are you sure you want to delete the account <strong>@Model?.Name</strong>?</p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger btn-lg" @onclick="ConfirmDelete">Delete</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    [Parameter] public int Id { get; set; }
+    private Account? Model;
+    private User? currentUser;
+    private bool isLoading = true;
+    private bool showSuccessAlert = false;
+    private string successMessage = "";
+    private List<string> errors = new();
+    private AccountEditModel editModel = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadCurrentUser();
+        await LoadAccount();
+        isLoading = false;
+    }
+
+    private async Task LoadCurrentUser()
+    {
+        var authStateProvider = Services.GetService(typeof(AuthenticationStateProvider)) as AuthenticationStateProvider;
+        var authState = await authStateProvider!.GetAuthenticationStateAsync();
+        var user = authState.User;
+        if (user.Identity?.IsAuthenticated == true)
+        {
+            using var scope = Services.CreateScope();
+            var userManager = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
+            currentUser = await userManager.GetUserAsync(user);
+        }
+        else
+        {
+            Navigation.NavigateTo("/Account/Login", true);
+        }
+    }
+
+    private async Task LoadAccount()
+    {
+        try
+        {
+            using var scope = Services.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<FinancyContext>();
+            Model = await db.Accounts.FirstOrDefaultAsync(a => a.Id == Id && a.UserId == currentUser!.Id);
+        }
+        catch (Exception ex)
+        {
+            errors.Add(ex.Message);
+        }
+    }
+
+    private async Task OpenEditModal()
+    {
+        if (Model == null) return;
+        editModel = new AccountEditModel
+        {
+            Id = Model.Id,
+            Name = Model.Name ?? "",
+            Type = Model.Type ?? "",
+            Balance = Model.Balance
+        };
+        await JSRuntime.InvokeVoidAsync("showModalById", "editAccountModal");
+    }
+
+    private async Task SubmitEdit()
+    {
+        using var scope = Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<FinancyContext>();
+        var acc = await db.Accounts.FindAsync(editModel.Id);
+        if (acc != null && acc.UserId == currentUser?.Id)
+        {
+            acc.Name = editModel.Name;
+            acc.Type = editModel.Type;
+            acc.Balance = editModel.Balance;
+            db.Accounts.Update(acc);
+            await db.SaveChangesAsync();
+            Model = acc;
+            successMessage = "Account updated successfully.";
+            showSuccessAlert = true;
+            await JSRuntime.InvokeVoidAsync("hideModalById", "editAccountModal");
+        }
+    }
+
+    private async Task OpenDeleteModal() => await JSRuntime.InvokeVoidAsync("showModalById", "deleteAccountModal");
+
+    private async Task ConfirmDelete()
+    {
+        using var scope = Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<FinancyContext>();
+        var acc = await db.Accounts.FindAsync(Id);
+        if (acc != null && acc.UserId == currentUser?.Id)
+        {
+            db.Accounts.Remove(acc);
+            await db.SaveChangesAsync();
+            await JSRuntime.InvokeVoidAsync("hideModalById", "deleteAccountModal");
+            Navigation.NavigateTo("/accounts", true);
+        }
+    }
+
+    private string GetAccountIcon(string? type) => type?.ToLower() switch
+    {
+        "checking" => "fas fa-university",
+        "savings" => "fas fa-piggy-bank",
+        "credit card" => "fas fa-credit-card",
+        "investment" => "fas fa-chart-line",
+        "cash" => "fas fa-money-bill-wave",
+        "paypal" => "fab fa-paypal",
+        _ => "fas fa-wallet"
+    };
+
+    private string GetAccountIconColor(string? type) => type?.ToLower() switch
+    {
+        "checking" => "#1976d2",
+        "savings" => "#28a745",
+        "credit card" => "#f57c00",
+        "investment" => "#7b1fa2",
+        "cash" => "#6c757d",
+        "paypal" => "#0070ba",
+        _ => "#6c757d"
+    };
+
+    public class AccountEditModel
+    {
+        public int Id { get; set; }
+        [System.ComponentModel.DataAnnotations.Required] public string Name { get; set; } = "";
+        [System.ComponentModel.DataAnnotations.Required] public string Type { get; set; } = "";
+        public decimal Balance { get; set; }
+    }
+}
+
+<style>
+    .account-details-card { background: white; border-radius: 12px; padding: 2rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+    .account-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem; }
+    .account-icon-large { width: 80px; height: 80px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 2rem; margin-right: 1rem; }
+    .account-name-large { font-size: 1.5rem; font-weight: 600; color: #2c3e50; }
+    .account-balance-large { font-size: 2rem; font-weight: 700; }
+    .account-balance-large.positive { color: #28a745; }
+    .account-balance-large.negative { color: #dc3545; }
+    .account-details-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); gap: 1.5rem; }
+    .detail-item { padding: 1rem; background: #f8f9fa; border-radius: 8px; }
+    .detail-label { font-weight: 600; color: #6c757d; font-size: 0.875rem; margin-bottom: 0.25rem; }
+    .detail-value { font-weight: 500; color: #2c3e50; }
+</style>
+
+<script>
+    window.showModalById = (id) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        const modal = bootstrap.Modal.getOrCreateInstance(el);
+        modal.show();
+    };
+    window.hideModalById = (id) => {
+        const el = document.getElementById(id);
+        if (!el) return;
+        const modal = bootstrap.Modal.getOrCreateInstance(el);
+        modal.hide();
+    };
+</script>

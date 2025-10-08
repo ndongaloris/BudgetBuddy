@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - BudgetBuddy</title>
+
+    <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
+    <link rel="stylesheet" href="~/css/site.css" />
+    <link rel="stylesheet" href="~/css/layout.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <style>
+        /* ===============================
+           UNIVERSAL + RESPONSIVE STYLING
+           =============================== */
+
+        /* Make layout scale well on all devices */
+        html, body {
+            width: 100%;
+            max-width: 100%;
+            overflow-x: hidden;
+        }
+
+        .navbar {
+            flex-wrap: wrap;
+        }
+
+        .navbar .container-fluid {
+            flex-wrap: wrap;
+        }
+
+        /* Buttons and profile */
+        .btn-sm {
+            padding: 9px;
+        }
+
+        .profile-image {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            object-fit: cover;
+        }
+
+        .profile-icon {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #4361ee, #7209b7);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 0.875rem;
+        }
+
+        /* Dropdown button */
+        .user-dropdown-btn {
+            background: none;
+            border: none;
+            padding: 0.25rem;
+            border-radius: 50%;
+            transition: background-color 0.2s ease;
+            cursor: pointer;
+        }
+
+        .user-dropdown-btn:hover {
+            background-color: rgba(0, 0, 0, 0.05);
+        }
+
+        /* ===============================
+           DROPDOWN FIXES + RESPONSIVENESS
+           =============================== */
+
+        .dropdown-container {
+            position: relative;
+            display: inline-block;
+        }
+
+        /* Core dropdown styling */
+        .dropdown-menu-blazor {
+            position: absolute;
+            top: 40px;
+            right: 0;
+            z-index: 2000;
+            display: block;
+            min-width: 220px;
+            margin-top: 10px;
+            padding: 0.5rem 0;
+            border: 1px solid rgba(0, 0, 0, 0.1);
+            border-radius: 0.375rem;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+            background-color: #ffffff;
+            backdrop-filter: blur(8px);
+        }
+
+        /* Keep menu text clear on background */
+        .dropdown-menu-blazor * {
+            color: #212529;
+        }
+
+        /* Dropdown links */
+        .dropdown-item {
+            padding: 0.5rem 1rem;
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+            color: #000;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+
+        .dropdown-item:hover {
+            background-color: #f1f3ff;
+            color: #4a3aff;
+        }
+
+        /* Logout hover */
+        .dropdown-item.text-danger:hover {
+            background-color: #6f1cf4ff;
+            color: #fff !important;
+        }
+
+        /* Divider and header */
+        .dropdown-header {
+            padding: 0.5rem 1rem;
+        }
+
+        .dropdown-divider {
+            margin: 0.5rem 0;
+        }
+
+        /* Overlay to block background click */
+        .click-outside-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 1000;
+            background: transparent;
+        }
+
+        .dropdown-menu-blazor {
+            list-style: none;
+            padding-left: 0;
+            margin-bottom: 0;
+        }
+
+        /* ===============================
+           MOBILE RESPONSIVENESS
+           =============================== */
+
+        @@media (max-width: 768px) {
+            .dropdown-menu-blazor {
+                right: 10px;
+                left: auto;
+                top: 50px;
+                width: 90vw;
+                max-width: 160px;
+                padding: 0.75rem 0;
+                box-shadow: 0 8px 25px rgba(0, 0, 0, 0.25);
+                margin-top: -5px;
+            }
+
+            .dropdown-item {
+                font-size: 0.95rem;
+                padding: 0.75rem 1rem;
+            }
+
+            .profile-icon, .profile-image {
+                width: 28px;
+                height: 28px;
+            }
+
+            .navbar-brand span {
+                font-size: 0.9rem;
+            }
+        }
+
+        /* Extremely small screens (≤480px) */
+        @@media (max-width: 480px) {
+            .dropdown-menu-blazor {
+                right: 5px;
+                left: 5px;
+                width: calc(100vw - 10px);
+                top: 55px;
+                font-size: 0.9rem;
+                border-radius: 0.5rem;
+            }
+
+            .dropdown-item i {
+                margin-right: 0.5rem;
+                font-size: 1rem;
+            }
+
+            .dropdown-item {
+                padding: 0.6rem 0.8rem;
+            }
+        }
+
+        /* Razor Pages specific styles */
+        .navbar-toggler {
+            border: none;
+            background: transparent;
+        }
+
+        .navbar-collapse {
+            transition: all 0.3s ease;
+        }
+    </style>
+
+    @await RenderSectionAsync("Styles", required: false)
+</head>
+
+<body>
+    <div class="page-container">
+        <header>
+            <nav class="navbar navbar-expand-lg navbar-light bg-white border-bottom fixed-top">
+                <div class="container-fluid px-4">
+                    <a class="navbar-brand d-flex align-items-center" href="/">
+                        <i class="fas fa-chart-line text-primary me-2"></i>
+                        BudgetBuddy
+                    </a>
+
+                    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#mainNavbar"
+                            aria-controls="mainNavbar" aria-expanded="false" aria-label="Toggle navigation">
+                        <span class="navbar-toggler-icon"></span>
+                    </button>
+
+                    <div class="collapse navbar-collapse" id="mainNavbar">
+                        <ul class="navbar-nav mx-auto">
+                            <li class="nav-item">
+                                <a class="nav-link" href="/">
+                                    <i class="fas fa-home me-1"></i>Home
+                                </a>
+                            </li>
+                            
+                            <!-- <li class="nav-item">
+                                <a class="nav-link" href="/transactions">
+                                    <i class="fas fa-exchange-alt me-1"></i>Transactions
+                                </a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link" href="/accounts">
+                                    <i class="fas fa-wallet me-1"></i>Accounts
+                                </a>
+                            </li> -->
+                            <!-- <li class="nav-item">
+                                <a class="nav-link" href="/categories">
+                                    <i class="fas fa-tags me-1"></i>Categories
+                                </a>
+                            </li> -->
+                        </ul>
+
+                        <div class="d-flex align-items-center gap-3">
+                            @if (User.Identity.IsAuthenticated)
+                            {
+                                <a href="#" class="text-muted text-decoration-none" title="Settings">
+                                    <i class="fas fa-cog fs-5"></i>
+                                </a>
+                                
+                                <a href="#" class="text-muted text-decoration-none position-relative" title="Notifications">
+                                    <i class="fas fa-bell fs-5"></i>
+                                    <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.6rem;">
+                                        3
+                                    </span>
+                                </a>
+
+                                <div class="dropdown-container">
+                                    <button class="user-dropdown-btn" type="button" id="userDropdown" data-bs-toggle="dropdown" aria-expanded="false" title="User menu">
+                                        @{
+                                            var userInitials = "U";
+                                            if (!string.IsNullOrEmpty(User.Identity.Name))
+                                            {
+                                                var names = User.Identity.Name.Split(' ');
+                                                userInitials = names.Length >= 2 
+                                                    ? $"{names[0][0]}{names[1][0]}"
+                                                    : User.Identity.Name[0].ToString();
+                                            }
+                                        }
+                                        <div class="profile-icon">
+                                            @userInitials
+                                        </div>
+                                    </button>
+                                    
+                                    <ul class="dropdown-menu dropdown-menu-blazor shadow" aria-labelledby="userDropdown">
+                                        <li>
+                                            <h6 class="dropdown-header text-dark">
+                                                <strong>@User.Identity.Name</strong>
+                                                <div class="small text-muted">@User.Identity.Name</div>
+                                            </h6>
+                                        </li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li>
+                                            <a class="dropdown-item" href="/profile">
+                                                <i class="fas fa-user me-2 text-primary"></i>Profile
+                                            </a>
+                                        </li>
+                                        <li>
+                                            <a class="dropdown-item" href="/settings">
+                                                <i class="fas fa-cog me-2 text-secondary"></i>Settings
+                                            </a>
+                                        </li>
+                                        <li>
+                                            <a class="dropdown-item" href="/help">
+                                                <i class="fas fa-question-circle me-2 text-info"></i>Help & Support
+                                            </a>
+                                        </li>
+                                        <li><hr class="dropdown-divider"></li>
+                                        <li>
+                                            <a class="dropdown-item text-danger" href="/Account/Logout">
+                                                <i class="fas fa-sign-out-alt me-2"></i>Logout
+                                            </a>
+                                        </li>
+                                    </ul>
+                                </div>
+                            }
+                            else
+                            {
+                                <a href="/Account/Login" class="btn btn-outline-primary me-2">
+                                    <i class="fas fa-sign-in-alt me-1"></i>Login
+                                </a>
+                                <a href="/Account/Register" class="btn btn-primary btn-sm">
+                                    <i class="fas fa-user-plus me-1"></i>Sign Up
+                                </a>
+                            }
+                        </div>
+                    </div>
+                </div>
+            </nav>
+        </header>
+
+        <div class="main-content" style="margin-top: 80px; min-height: calc(100vh - 160px);">
+            <main role="main" class="pb-3">
+                @RenderBody()
+            </main>
+        </div>
+
+        <footer class="bg-white border-top py-4 mt-5">
+            <div class="container-fluid px-4">
+                <div class="row align-items-center">
+                    <div class="col-md-6">
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-chart-line text-primary me-2"></i>
+                            <span class="fw-semibold text-muted">BudgetBuddy</span>
+                            <span class="text-muted ms-2">© 2025 All rights reserved</span>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="d-flex justify-content-md-end gap-4">
+                            <a href="#" class="text-muted text-decoration-none small">Privacy Policy</a>
+                            <a href="#" class="text-muted text-decoration-none small">Terms of Service</a>
+                            <a href="#" class="text-muted text-decoration-none small">Support</a>
+                            <a href="#" class="text-muted text-decoration-none small">Contact</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="~/js/site.js"></script>
+    
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+</html>

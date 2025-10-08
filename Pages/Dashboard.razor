@@ -1,0 +1,525 @@
+@page "/dashboard"
+@layout MainLayout 
+@using BudgetBuddy.Models
+@using BudgetBuddy.Data
+@using Microsoft.EntityFrameworkCore
+@using Microsoft.AspNetCore.Identity
+@using Microsoft.AspNetCore.Components.Authorization
+@inject FinancyContext Db
+@inject UserManager<User> UserManager
+@inject IJSRuntime JSRuntime
+@inject NavigationManager Navigation
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject IServiceProvider Services
+
+<PageTitle>BudgetBuddy - Dashboard</PageTitle>
+
+<style>
+    body { 
+        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; 
+        background-color: #f8f9fa; 
+    }
+    
+    .greeting-section { 
+        background: white; 
+        border-radius: 12px; 
+        padding: 1.5rem; 
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2); 
+    }
+    
+    .metric-card { 
+        background: white; 
+        border-radius: 12px; 
+        padding: 1.5rem; 
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2); 
+        height: 100%; 
+    }
+    
+    .metric-title { 
+        font-size: 0.875rem; 
+        color: #6c757d; 
+        margin-bottom: 0.5rem; 
+        font-weight: 500; 
+    }
+    
+    .metric-value { 
+        font-size: 1.75rem; 
+        font-weight: 700; 
+        margin-bottom: 0.5rem; 
+    }
+    
+    .text-balance-negative { color: #cc7000; }
+    .text-balance-positive { color: #007bff; }
+    
+    .action-button { 
+        background: white; 
+        border-radius: 12px; 
+        padding: 1.25rem; 
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2); 
+        border: none; 
+        width: 100%; 
+        text-align: left; 
+        display: flex; 
+        align-items: center; 
+        gap: 1rem; 
+        margin-bottom: 1rem; 
+        color: inherit; 
+        text-decoration: none; 
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    
+    .action-button:hover { 
+        transform: translateY(-2px); 
+        box-shadow: 0 4px 8px rgba(0,0,0,0.15); 
+        text-decoration: none;
+        color: inherit;
+    }
+    
+    .action-icon { 
+        width: 40px; 
+        height: 40px; 
+        border-radius: 50%; 
+        display: flex; 
+        align-items: center; 
+        justify-content: center; 
+        font-size: 1.25rem; 
+    }
+    
+    .action-icon.income { background-color: #e8f5e8; color: #28a745; }
+    .action-icon.expense { background-color: #fdeaea; color: #dc3545; }
+    
+    .chart-container, .transactions-container {
+        background: white; 
+        border-radius: 12px; 
+        padding: 1.5rem; 
+        box-shadow: 0 2px 4px rgba(0,0,0,0.2); 
+    }
+
+    .chart-container { min-height: 500px; }
+
+    .time-filters a { 
+        margin-right: 8px; 
+        padding: 6px 12px; 
+        border-radius: 6px; 
+        text-decoration: none; 
+        color: #333; 
+        background: transparent;
+        cursor: pointer;
+    }
+    .time-filters a.active { background: #f1f1f1; color: #000; }
+    .time-filters a:hover { background: #f1f1f1; text-decoration: none; color: #333; }
+
+    .section-title { font-size: 1.25rem; font-weight: 600; margin-bottom: 0.5rem; }
+    .section-subtitle { color: #6c757d; margin-bottom: 1.5rem; }
+    .category-item { padding: 0.5rem 0; border-bottom: 1px solid #f1f1f1; }
+    .category-item:last-child { border-bottom: none; }
+
+    .transaction-avatar {
+        width: 32px; height: 32px;
+        border-radius: 50%; color: white;
+        display: flex; align-items: center; justify-content: center;
+        font-weight: bold; font-size: 0.875rem;
+    }
+
+    .greeting-section h1 { color: #000000; }
+
+
+    .category-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.6rem 0;
+    border-bottom: 1px solid #f1f1f1;
+}
+.category-item:last-child {
+    border-bottom: none;
+}
+.category-info {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+.category-name {
+    font-weight: 500;
+    color: #333;
+}
+.category-percentage {
+    font-weight: 600;
+    color: #000;
+    text-align: right;
+}
+
+</style>
+
+<div class="container-fluid px-4 py-3">
+    <!-- Greeting -->
+    <div class="greeting-section">
+        <div class="d-flex justify-content-between align-items-center">
+            <h1 class="h3 mb-0 fw-bold">
+                @if (currentUser != null && !string.IsNullOrEmpty(currentUser.FullName))
+                {
+                    <text>Hello, @currentUser.FullName!</text>
+                }
+                else
+                {
+                    <text>Hello!</text>
+                }
+            </h1>
+            <div class="time-filters">
+                <a @onclick='() => SetFilter("thismonth")' class='@GetActiveClass("thismonth")'>This month</a>
+                <a @onclick='() => SetFilter("lastmonth")' class='@GetActiveClass("lastmonth")'>Last month</a>
+                <a @onclick='() => SetFilter("thisyear")' class='@GetActiveClass("thisyear")'>This year</a>
+                <a @onclick='() => SetFilter("last12months")' class='@GetActiveClass("last12months")'>Last 12 months</a>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <!-- Chart -->
+        <div class="col-lg-4">
+
+        <div class="chart-container">
+            <div class="section-title">Expenses by category</div>
+            <div class="section-subtitle">Check your expenses by category</div>
+            <div style="height: 280px;">
+                <canvas id="expensesChart"></canvas>
+            </div>
+
+            @if (periodData?.Categories?.Any() == true)
+            {
+                @foreach (var cat in periodData.Categories)
+                {
+                    <div class="category-item d-flex justify-content-between align-items-center">
+                        <div class="category-info d-flex align-items-center gap-2">
+                            <div class="category-color" style="width:12px;height:12px;border-radius:50%;background:@cat.Color;"></div>
+                            <span class="category-name">@cat.Name</span>
+                        </div>
+                        <span class="category-percentage fw-semibold">@cat.Percentage</span>
+                    </div>
+                }
+            }
+            else
+            {
+                <div class="text-center text-muted py-3">No expense data available</div>
+            }
+        </div>
+
+
+        </div>
+
+        <!-- Metrics + Actions + Transactions -->
+        <div class="col-lg-8">
+            <div class="row g-3 mb-4">
+                <div class="col-md-4">
+                    <div class="metric-card">
+                        <div class="metric-title">Balance</div>
+                        <div class="metric-value @GetBalanceClass()">@GetBalanceDisplay()</div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="metric-card">
+                        <div class="metric-title">Incomes</div>
+                        <div class="metric-value text-success">@GetIncomeDisplay()</div>
+                    </div>
+                </div>
+                <div class="col-md-4">
+                    <div class="metric-card">
+                        <div class="metric-title">Expenses</div>
+                        <div class="metric-value text-danger">@GetExpenseDisplay()</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Actions -->
+            <div class="row g-3 mb-4">
+                <div class="col-md-6">
+                    <button class="action-button" @onclick="NavigateToIncome">
+                        <div class="action-icon income"><i class="fas fa-plus"></i></div>
+                        <div>
+                            <div class="fw-semibold">Add Income</div>
+                            <div class="text-muted small">Create an income manually</div>
+                        </div>
+                    </button>
+                </div>
+                <div class="col-md-6">
+                    <button class="action-button" @onclick="NavigateToExpense">
+                        <div class="action-icon expense"><i class="fas fa-plus"></i></div>
+                        <div>
+                            <div class="fw-semibold">Add Expense</div>
+                            <div class="text-muted small">Create an expense manually</div>
+                        </div>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Transactions -->
+            <div class="transactions-container">
+                <div class="section-title">Last transactions</div>
+                <div class="section-subtitle">Check your last transactions</div>
+                <div class="table-responsive">
+                    <table class="table table-borderless">
+                        <thead>
+                            <tr class="text-muted small">
+                                <th>Description</th>
+                                <th>Category</th>
+                                <th>Date</th>
+                                <th class="text-end">Amount</th>
+                                <th class="text-center">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @if (lastTransactions?.Any() != true)
+                            {
+                                <tr><td colspan="5" class="text-muted text-center py-4">No recent transactions</td></tr>
+                            }
+                            else
+                            {
+                                @foreach (var tx in lastTransactions)
+                                {
+                                    <tr>
+                                        <td class="d-flex align-items-center gap-2">
+                                            <div class="transaction-avatar" style="background:@GetColor(tx.Description);">
+                                                @GetInitials(tx.Description)
+                                            </div>
+                                            <span>@tx.Description</span>
+                                        </td>
+                                        <td>@(tx.Category?.Name ?? "Uncategorized")</td>
+                                        <td>@tx.Date.ToString("MM/dd/yyyy")</td>
+                                        <td class="text-end">
+                                            <span class="@(tx.IsIncome ? "text-success" : "text-danger") fw-semibold">
+                                                @(tx.IsIncome ? "+" : "-")@tx.Amount.ToString("C")
+                                            </span>
+                                        </td>
+                                        <td class="text-center">
+                                            @if (tx.IsIncome)
+                                            {
+                                                <button class="btn btn-link text-warning p-0 me-2" @onclick="() => EditIncome(tx.Id)" title="Edit Income"><i class="fas fa-edit"></i></button>
+                                                <button class="btn btn-link text-danger p-0" @onclick="() => DeleteIncome(tx.Id)" title="Delete Income"><i class="fas fa-trash"></i></button>
+                                            }
+                                            else
+                                            {
+                                                <button class="btn btn-link text-warning p-0 me-2" @onclick="() => EditExpense(tx.Id)" title="Edit Expense"><i class="fas fa-edit"></i></button>
+                                                <button class="btn btn-link text-danger p-0" @onclick="() => DeleteExpense(tx.Id)" title="Delete Expense"><i class="fas fa-trash"></i></button>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            }
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@code {
+    private User? currentUser;
+    private string currentFilter = "thismonth";
+    private PeriodData? periodData;
+    private List<Transaction> lastTransactions = new();
+    private bool isChartInitialized = false;
+    private bool isLoading = true;
+
+    private record CategoryDto(string Name, string Percentage, string Color);
+    private record PeriodData(decimal Incomes, decimal Expenses, decimal Balance, double[] ChartData, CategoryDto[] Categories);
+
+    protected override async Task OnInitializedAsync()
+    {
+        await LoadCurrentUser();
+        if (currentUser != null)
+        {
+            await LoadDashboardData();
+        }
+        isLoading = false;
+    }
+
+    private async Task LoadCurrentUser()
+    {
+        try
+        {
+            var authStateProvider = Services.GetService(typeof(AuthenticationStateProvider)) as AuthenticationStateProvider;
+            var authState = await authStateProvider!.GetAuthenticationStateAsync();
+            var user = authState.User;
+
+            if (user.Identity?.IsAuthenticated == true)
+            {
+                using var scope = Services.CreateScope();
+                var userManager = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
+                currentUser = await userManager.GetUserAsync(user);
+            }
+            else
+            {
+                Navigation.NavigateTo("/Account/Login", true);
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading user in Dashboard: {ex.Message}");
+        }
+    }
+
+    private async Task LoadDashboardData()
+    {
+        if (currentUser == null) return;
+
+        try
+        {
+            var (startDate, endDate) = GetDateRange();
+            var metrics = await GetMetrics(startDate, endDate);
+            periodData = BuildPeriodData(metrics);
+            lastTransactions = await GetLastTransactions(startDate, endDate);
+
+            if (isChartInitialized)
+                await UpdateChart();
+            else
+                await InitializeChart();
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"Error loading dashboard data: {ex.Message}");
+        }
+    }
+
+    private (DateTime startDate, DateTime endDate) GetDateRange()
+    {
+        var now = DateTime.Now;
+        return currentFilter switch
+        {
+            "lastmonth" => (new DateTime(now.Year, now.Month, 1).AddMonths(-1), new DateTime(now.Year, now.Month, 1).AddDays(-1)),
+            "thisyear" => (new DateTime(now.Year, 1, 1), new DateTime(now.Year, 12, 31)),
+            "last12months" => (now.AddMonths(-12), now),
+            _ => (new DateTime(now.Year, now.Month, 1), new DateTime(now.Year, now.Month, 1).AddMonths(1).AddDays(-1))
+        };
+    }
+
+    private async Task<(decimal incomes, decimal expenses, decimal balance, List<(string Name, decimal Amount)> categories)> GetMetrics(DateTime start, DateTime end)
+    {
+        var incomes = await Db.Transactions
+            .Where(t => t.UserId == currentUser!.Id && t.IsIncome && t.Date >= start && t.Date <= end)
+            .SumAsync(t => (decimal?)t.Amount) ?? 0;
+
+        var expenses = await Db.Transactions
+            .Where(t => t.UserId == currentUser!.Id && !t.IsIncome && t.Date >= start && t.Date <= end)
+            .SumAsync(t => (decimal?)t.Amount) ?? 0;
+
+        var balance = incomes - expenses;
+
+        var categories = await Db.Transactions
+            .Where(t => t.UserId == currentUser!.Id && !t.IsIncome && t.Date >= start && t.Date <= end)
+            .GroupBy(t => t.Category.Name)
+            .Select(g => new { Name = g.Key, Amount = g.Sum(x => x.Amount) })
+            .OrderByDescending(x => x.Amount)
+            .ToListAsync();
+
+        return (incomes, expenses, balance, categories.Select(c => (c.Name ?? "Other", c.Amount)).ToList());
+    }
+
+    private PeriodData BuildPeriodData((decimal incomes, decimal expenses, decimal balance, List<(string Name, decimal Amount)> categories) metrics)
+    {
+        var palette = new[] { "#6366f1", "#ef4444", "#06b6d4", "#10b981", "#8b5cf6", "#f59e0b" };
+        var totalExpenses = metrics.expenses;
+        var top6 = metrics.categories.Take(6).ToList();
+
+        var chartData = top6.Select(c => totalExpenses > 0 ? Math.Round((double)(c.Amount / totalExpenses * 100M), 2) : 0.0).ToArray();
+
+        var categoriesList = top6.Select((c, i) =>
+            new CategoryDto(
+                c.Name ?? "Other",
+                totalExpenses > 0 ? Math.Round((double)(c.Amount / totalExpenses * 100M), 2).ToString("0.##") + "%" : "0%",
+                palette[Math.Min(i, palette.Length - 1)]
+            )
+        ).ToArray();
+
+        return new PeriodData(metrics.incomes, metrics.expenses, metrics.balance, chartData, categoriesList);
+    }
+
+    private async Task<List<Transaction>> GetLastTransactions(DateTime start, DateTime end)
+    {
+        // Force EF Core to fetch a fresh snapshot of the latest data
+        return await Db.Transactions
+            .AsNoTracking() // ✅ prevents caching, ensures fresh updated data
+            .Include(t => t.Category)
+            .Include(t => t.Account)
+            .Where(t => t.UserId == currentUser!.Id && t.Date >= start && t.Date <= end)
+            .OrderByDescending(t => t.Date)
+            .Take(5)
+            .ToListAsync();
+    }
+
+
+    private async Task InitializeChart()
+    {
+        if (periodData?.ChartData?.Length > 0)
+        {
+            await JSRuntime.InvokeVoidAsync("initializeExpensesChart", 
+                periodData.Categories.Select(c => c.Name).ToArray(),
+                periodData.ChartData,
+                periodData.Categories.Select(c => c.Color).ToArray());
+            isChartInitialized = true;
+        }
+    }
+
+    private async Task UpdateChart()
+    {
+        if (periodData?.ChartData?.Length > 0)
+        {
+            await JSRuntime.InvokeVoidAsync("updateExpensesChart", 
+                periodData.Categories.Select(c => c.Name).ToArray(),
+                periodData.ChartData,
+                periodData.Categories.Select(c => c.Color).ToArray());
+        }
+    }
+
+    private string GetActiveClass(string filter) => filter == currentFilter ? "time-filter active" : "time-filter";
+    private string GetBalanceClass() => (periodData?.Balance ?? 0) < 0 ? "text-balance-negative" : "text-balance-positive";
+    private string GetBalanceDisplay() => (periodData?.Balance ?? 0) < 0 ? $"-{Math.Abs(periodData!.Balance):C}" : $"{periodData?.Balance:C}";
+    private string GetIncomeDisplay() => $"{periodData?.Incomes:C}";
+    private string GetExpenseDisplay() => $"{periodData?.Expenses:C}";
+    private string GetInitials(string text) => string.IsNullOrWhiteSpace(text) ? "?" : text[..1].ToUpper();
+    private string GetColor(string text) => $"hsl({Math.Abs(text.GetHashCode()) % 360}, 70%, 60%)";
+
+    private async Task SetFilter(string filter)
+    {
+        currentFilter = filter;
+        await LoadDashboardData();
+    }
+
+    private void NavigateToIncome() => Navigation.NavigateTo("/income");
+    private void NavigateToExpense() => Navigation.NavigateTo("/expense");
+
+    private void EditIncome(int id) => Navigation.NavigateTo($"/income/{id}");
+    private void EditExpense(int id) => Navigation.NavigateTo($"/expense/{id}");
+
+    private async Task DeleteIncome(int id)
+    {
+        bool confirmed = await JSRuntime.InvokeAsync<bool>("confirm", "Are you sure you want to delete this income?");
+        if (!confirmed) return;
+
+        using var scope = Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<FinancyContext>();
+        var tx = await db.Transactions.FirstOrDefaultAsync(t => t.Id == id && t.IsIncome && t.UserId == currentUser!.Id);
+        if (tx != null)
+        {
+            db.Transactions.Remove(tx);
+            await db.SaveChangesAsync();
+            await LoadDashboardData();
+        }
+    }
+
+    private async Task DeleteExpense(int id)
+    {
+        bool confirmed = await JSRuntime.InvokeAsync<bool>("confirm", "Are you sure you want to delete this expense?");
+        if (!confirmed) return;
+
+        using var scope = Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<FinancyContext>();
+        var tx = await db.Transactions.FirstOrDefaultAsync(t => t.Id == id && !t.IsIncome && t.UserId == currentUser!.Id);
+        if (tx != null)
+        {
+            db.Transactions.Remove(tx);
+            await db.SaveChangesAsync();
+            await LoadDashboardData();
+        }
+    }
+}

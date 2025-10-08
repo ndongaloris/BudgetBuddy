@@ -1,0 +1,39 @@
+@page "/database-test"
+@using BudgetBuddy.Data
+@using Microsoft.EntityFrameworkCore   <!-- ✅ Needed for CountAsync -->
+@inject FinancyContext Db
+
+<h3>Database Test</h3>
+
+<button class="btn btn-primary" @onclick="TestConnection">Test DB Connection</button>
+
+@if (message != null)
+{
+    <p>@message</p>
+}
+
+@code {
+    private string? message;
+
+    private async Task TestConnection()
+    {
+        try
+        {
+            var canConnect = await Db.Database.CanConnectAsync();
+            if (canConnect)
+            {
+                // ✅ CountAsync works only if EF Core namespace is imported above
+                var count = await Db.Categories.CountAsync();
+                message = $"✅ Connected! Found {count} categories in DB.";
+            }
+            else
+            {
+                message = "❌ Failed to connect to DB.";
+            }
+        }
+        catch (Exception ex)
+        {
+            message = $"❌ Error: {ex.Message}";
+        }
+    }
+}

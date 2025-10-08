@@ -1,0 +1,87 @@
+@using Microsoft.AspNetCore.Components.Authorization
+
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+    <div class="container-fluid">
+        <a class="navbar-brand" href="/">
+            <i class="fas fa-chart-line me-2"></i>
+            BudgetBuddy
+        </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+            <ul class="navbar-nav me-auto">
+                <li class="nav-item">
+                    <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
+                        <i class="fas fa-home me-1"></i> Home
+                    </NavLink>
+                </li>
+                <li class="nav-item">
+                    <NavLink class="nav-link" href="/transactions">
+                        <i class="fas fa-exchange-alt me-1"></i> Transactions
+                    </NavLink>
+                </li>
+                <li class="nav-item">
+                    <NavLink class="nav-link" href="/accounts">
+                        <i class="fas fa-wallet me-1"></i> Accounts
+                    </NavLink>
+                </li>
+                <li class="nav-item">
+                    <NavLink class="nav-link" href="/categories">
+                        <i class="fas fa-tags me-1"></i> Categories
+                    </NavLink>
+                </li>
+                <li class="nav-item">
+                    <NavLink class="nav-link" href="/database-test">
+                        <i class="fas fa-database me-1"></i> DB Test
+                    </NavLink>
+                </li>
+            </ul>
+            
+            <!-- Authentication Section -->
+            <div class="navbar-nav">
+                <AuthorizeView>
+                    <Authorized>
+                        <li class="nav-item">
+                            <NavLink class="nav-link" href="/logout">
+                                <i class="fas fa-sign-out-alt me-1"></i> Logout
+                            </NavLink>
+                        </li>
+                    </Authorized>
+                    <NotAuthorized>
+                        <li class="nav-item">
+                            <NavLink class="nav-link" href="/login">
+                                <i class="fas fa-sign-in-alt me-1"></i> Login
+                            </NavLink>
+                        </li>
+                        <li class="nav-item">
+                            <NavLink class="nav-link" href="/register">
+                                <i class="fas fa-user-plus me-1"></i> Register
+                            </NavLink>
+                        </li>
+                    </NotAuthorized>
+                </AuthorizeView>
+            </div>
+        </div>
+    </div>
+</nav>
+
+<style>
+    .navbar-brand {
+        font-weight: 600;
+    }
+    
+    .nav-link {
+        border-radius: 4px;
+        margin: 0 2px;
+    }
+    
+    .nav-link:hover {
+        background-color: rgba(255,255,255,0.1);
+    }
+    
+    .navbar-nav .nav-link.active {
+        background-color: rgba(255,255,255,0.2);
+        font-weight: 500;
+    }
+</style>

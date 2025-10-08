@@ -1,0 +1,476 @@
+@page
+@model BudgetBuddy.Pages.Account.RegisterModel
+@{
+    ViewData["Title"] = "Register";
+    Layout = "Shared/_Layout";
+}
+
+@section Styles {
+    <style>
+        /* Register page specific styles - KEEP ALL ORIGINAL STYLING */
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background-color: #f8f9fa;
+            margin: 0;
+            padding: 0;
+        }
+        
+        /* Remove default layout margins for register page */
+        .main-content {
+            margin-top: 0 !important;
+            padding-top: 0 !important;
+        }
+        
+        .register-full-height {
+            min-height: 100vh;
+            margin-top: 0;
+            padding-top: 0;
+        }
+        
+        .left-section {
+            background: linear-gradient(135deg, #e3f2fd 0%, #f3e5f5 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            margin: 0;
+            padding: 0;
+            margin-bottom: -48px;
+        }
+        
+        .yellow-blob {
+            width: 350px;
+            height: 350px;
+            background: #ffd54f;
+            border-radius: 50% 40% 60% 30%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2.5rem;
+            font-weight: 600;
+            color: #333;
+            animation: blob 8s infinite;
+        }
+
+        /* NEW: Mobile yellow blob - appears on small screens */
+        .yellow-blob-mobile {
+            width: 180px;
+            height: 180px;
+            background: #ffd54f;
+            border-radius: 50% 40% 60% 30%;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            font-weight: 600;
+            color: #333;
+            animation: blob 8s infinite;
+            margin: 0 auto 2rem auto;
+            box-shadow: 0 8px 25px rgba(255, 213, 79, 0.3);
+        }
+        
+        @@keyframes blob {
+            0%, 100% { border-radius: 50% 40% 60% 30%; }
+            25% { border-radius: 30% 60% 40% 50%; }
+            50% { border-radius: 60% 30% 50% 40%; }
+            75% { border-radius: 40% 50% 30% 60%; }
+        }
+        
+        .right-section {
+            background: white;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 2rem;
+            margin: 0;
+            margin-top: 35px;
+            margin-bottom: -48px;
+        }
+        
+        .form-container {
+            width: 100%;
+            max-width: 400px;
+            margin: 0 auto;
+        }
+        
+        .form-title {
+            font-size: 1.75rem;
+            font-weight: 600;
+            color: #2c3e50;
+            margin-bottom: 2rem;
+            text-align: center;
+        }
+        
+        /* FIX: Proper label positioning - labels above inputs */
+        .form-label {
+            font-weight: 500;
+            color: #495057;
+            margin-bottom: 0.5rem;
+            display: block; /* Ensure label is on its own line */
+        }
+        
+        .register-form-control {
+            background-color: #e9ecef;
+            border: none;
+            border-radius: 8px;
+            padding: 0.875rem 1rem;
+            font-size: 0.95rem;
+            margin-bottom: 1.25rem;
+            width: 100%;
+            display: block; /* Ensure input is on its own line */
+        }
+        
+        .register-form-control:focus {
+            background-color: #e9ecef;
+            border: 2px solid #007bff;
+            box-shadow: none;
+        }
+        
+        .btn-create {
+            background-color: #ffd54f;
+            border: none;
+            border-radius: 8px;
+            padding: 0.875rem 2rem;
+            font-weight: 600;
+            color: #333;
+            width: 100%;
+            margin-bottom: 1.5rem;
+            transition: all 0.3s ease;
+        }
+        
+        .btn-create:hover {
+            background-color: #ffcc02;
+            color: #333;
+            transform: translateY(-1px);
+        }
+        
+        .signin-link {
+            text-align: center;
+            margin-bottom: 1.5rem;
+            color: #6c757d;
+        }
+        
+        .signin-link a {
+            color: #007bff;
+            text-decoration: none;
+            font-weight: 500;
+        }
+        
+        .divider {
+            text-align: center;
+            margin: 1.5rem 0;
+            color: #adb5bd;
+            position: relative;
+        }
+        
+        .divider::before {
+            content: '';
+            position: absolute;
+            top: 50%;
+            left: 0;
+            right: 0;
+            height: 1px;
+            background-color: #dee2e6;
+            z-index: 1;
+        }
+        
+        .divider span {
+            background: white;
+            padding: 0 1rem;
+            position: relative;
+            z-index: 2;
+        }
+        
+        .social-buttons {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+        }
+
+        .btn-social {
+            padding: 0.75rem 1rem;
+            border-radius: 8px;
+            text-decoration: none;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.5rem;
+            transition: all 0.3s ease;
+            border: none;
+            width: 100%;
+        }
+
+        /* Google Button Styles */
+        .google-btn {
+            background-color: #DB4437;
+            color: white;
+        }
+
+        .google-btn:hover {
+            background-color: #C33D2E;
+            color: white;
+            text-decoration: none;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            transform: translateY(-1px);
+        }
+
+        .google-btn i {
+            color: white;
+        }
+
+        /* GitHub Button */
+        .github-btn {
+            background-color: #24292e;
+            color: white;
+        }
+
+        .github-btn:hover {
+            background-color: #2c3e50;
+            color: white;
+            text-decoration: none;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+            transform: translateY(-1px);
+        }
+
+        .github-btn i {
+            color: white;
+        }
+
+        .validation-summary-errors ul {
+            list-style: none;
+            padding-left: 0;
+            color: #dc3545;
+            margin-bottom: 1.5rem;
+        }
+        
+        .field-validation-error {
+            color: #dc3545;
+            font-size: 0.875rem;
+            margin-top: -1rem;
+            margin-bottom: 1rem;
+            display: block;
+        }
+
+        /* FIX: Remove extra spacing and make card touch nav */
+        .register-page-wrapper {
+            margin-top: 0 !important;
+            padding-top: 0 !important;
+        }
+
+        .container-fluid.p-0 {
+            margin-top: 0;
+        }
+
+        /* Ensure form groups have proper spacing */
+        .form-group {
+            margin-bottom: 1.5rem;
+        }
+
+        /* Remove any extra padding from main content */
+        main[role="main"] {
+            padding: 0 !important;
+        }
+
+        /* NEW: Super Responsive Mobile Styles */
+        
+        /* Tablet and below - show mobile blob */
+        @@media (max-width: 991.98px) {
+            .left-section {
+                display: none !important;
+            }
+            
+            .yellow-blob-mobile {
+                display: flex;
+            }
+            
+            .right-section {
+                min-height: auto;
+                padding: 1.5rem;
+                margin-top: 20px;
+                margin-bottom: 0;
+                align-items: flex-start;
+                padding-top: 2rem;
+            }
+            
+            .form-container {
+                padding-top: 0;
+            }
+            
+            .yellow-blob-mobile {
+                animation: blob-mobile 8s infinite;
+            }
+            
+            @@keyframes blob-mobile {
+                0%, 100% { 
+                    border-radius: 50% 40% 60% 30%; 
+                    transform: scale(1);
+                }
+                25% { 
+                    border-radius: 30% 60% 40% 50%; 
+                    transform: scale(1.05);
+                }
+                50% { 
+                    border-radius: 60% 30% 50% 40%; 
+                    transform: scale(1);
+                }
+                75% { 
+                    border-radius: 40% 50% 30% 60%; 
+                    transform: scale(1.05);
+                }
+            }
+        }
+
+        /* Small mobile devices */
+        @@media (max-width: 575.98px) {
+            .yellow-blob-mobile {
+                width: 140px;
+                height: 140px;
+                font-size: 1.25rem;
+                margin-top: 3.9rem;
+                margin-bottom: 2.5rem;
+            }
+            
+            .right-section {
+                padding: 1rem;
+                margin-top: 15px;
+            }
+            
+            .form-title {
+                font-size: 1.5rem;
+                margin-bottom: 1.5rem;
+            }
+            
+            .btn-create {
+                padding: 0.75rem 2rem;
+            }
+        }
+
+        /* Very small devices */
+        @@media (max-width: 375px) {
+            .yellow-blob-mobile {
+                width: 120px;
+                height: 120px;
+                font-size: 1.1rem;
+                margin-bottom: 1rem;
+            }
+            
+            .form-title {
+                font-size: 1.3rem;
+            }
+        }
+    </style>
+}
+
+<!-- Remove all extra spacing wrappers -->
+<div class="container-fluid p-0 register-page-wrapper">
+    <div class="row g-0">
+        
+        <div class="col-lg-6 left-section d-none d-lg-flex">
+            <div class="yellow-blob">
+                <div class="navbar-brand d-flex align-items-center" style="text-decoration: none; color: inherit;">
+                    <i class="fas fa-chart-line text-primary me-2"></i>
+                    BudgetBuddy
+                </div>
+            </div>
+        </div>
+
+        <div class="col-lg-6 right-section col-12">
+            <div class="form-container">
+                <!-- NEW: Mobile Yellow Blob - appears on tablets and phones -->
+                <div class="yellow-blob-mobile d-lg-none">
+                    <div style="text-decoration: none; color: inherit;">
+                        <i class="fas fa-chart-line text-primary me-2"></i>
+                    </div>
+                </div>
+                
+                <h2 class="form-title">Create your Free Account</h2>
+                
+                @if (!ViewData.ModelState.IsValid)
+                {
+                    <div class="validation-summary-errors">
+                        <h6>Please fix the following errors:</h6>
+                        <ul class="mb-0">
+                            @foreach (var error in ViewData.ModelState.Values.SelectMany(v => v.Errors))
+                            {
+                                <li>@error.ErrorMessage</li>
+                            }
+                        </ul>
+                    </div>
+                }
+
+                @if (!string.IsNullOrEmpty(Model.SuccessMessage))
+                {
+                    <div class="alert alert-success mt-3" role="alert">
+                        <i class="fas fa-check-circle me-2"></i>@Model.SuccessMessage
+                    </div>
+                }
+                
+                <!-- EXTRACTED LOGIC: Using explicit name attributes for reliable model binding -->
+                <form method="post">
+                    @Html.AntiForgeryToken()
+                    
+                    <!-- FIX: Proper label above input structure -->
+                    <div class="form-group">
+                        <label class="form-label" for="Input_FullName">Full Name</label>
+                        <input type="text" id="Input_FullName" name="Input.FullName" class="register-form-control" 
+                               placeholder="Enter your full name" 
+                               value="@Model.Input?.FullName" required>
+                        <span asp-validation-for="Input.FullName" class="field-validation-error"></span>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label" for="Input_Email">Email</label>
+                        <input type="email" id="Input_Email" name="Input.Email" class="register-form-control" 
+                               placeholder="Enter your email address" 
+                               value="@Model.Input?.Email" required>
+                        <span asp-validation-for="Input.Email" class="field-validation-error"></span>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label" for="Input_Password">Password</label>
+                        <input type="password" id="Input_Password" name="Input.Password" class="register-form-control" 
+                               placeholder="Enter your password" required>
+                        <span asp-validation-for="Input.Password" class="field-validation-error"></span>
+                        <small class="form-text text-muted">Password must be at least 6 characters long</small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label" for="Input_ConfirmPassword">Confirm Password</label>
+                        <input type="password" id="Input_ConfirmPassword" name="Input.ConfirmPassword" class="register-form-control" 
+                               placeholder="Confirm your password" required>
+                        <span asp-validation-for="Input.ConfirmPassword" class="field-validation-error"></span>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-create">Create Account</button>
+                </form>
+                
+                <div class="signin-link">
+                    Already have an account? <a asp-page="./Login">Sign in</a>
+                </div>
+                
+                <div class="divider">
+                    <span>— OR —</span>
+                </div>
+                
+                <div class="social-buttons">
+                    <a asp-page="./ExternalLogin" asp-route-returnUrl="@Model.ReturnUrl" asp-route-provider="Google" class="btn-social google-btn">
+                        <i class="fab fa-google"></i>
+                        Sign up with Google
+                    </a>
+                    
+                    <a asp-page="./ExternalLogin" asp-route-returnUrl="@Model.ReturnUrl" asp-route-provider="GitHub" class="btn-social github-btn">
+                        <i class="fab fa-github"></i>
+                        Sign up with GitHub
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
